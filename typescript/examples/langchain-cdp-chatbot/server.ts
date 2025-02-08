@@ -41,7 +41,7 @@ app.get('/', (req, res) => {
 app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+      return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
 
     const formData = new FormData();
@@ -80,18 +80,16 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     const gatewayUrl = `https://${PINATA_GATEWAY}/ipfs/${ipfsHash}`;
     const ipfsUrl = `ipfs://${ipfsHash}`;
 
-    res.json({
+    return res.status(200).json({
       success: true,
-      ipfsUrl,
-      gatewayUrl,
-      hash: ipfsHash
+      ipfsUrl: `${PINATA_GATEWAY}/ipfs/${ipfsHash}`,
+      ipfsHash
     });
-
   } catch (error) {
-    console.error('Error uploading to Pinata:', error);
-    res.status(500).json({
-      error: 'Failed to upload to IPFS',
-      details: error instanceof Error ? error.message : 'Unknown error'
+    console.error('Error uploading to IPFS:', error);
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
@@ -99,34 +97,31 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 // Upload metadata to IPFS
 app.post('/api/upload/metadata', async (req, res) => {
   try {
-    const metadata = req.body;
-    if (!metadata) {
-      return res.status(400).json({ error: 'No metadata provided' });
+    if (!req.body.metadata) {
+      return res.status(400).json({ success: false, error: 'No metadata provided' });
     }
 
-    const response = await axios.post('https://api.pinata.cloud/pinning/pinJSONToIPFS', metadata, {
+    const response = await axios.post('https://api.pinata.cloud/pinning/pinJSONToIPFS', req.body.metadata, {
       headers: {
         'Authorization': `Bearer ${PINATA_JWT}`,
         'Content-Type': 'application/json'
       }
     });
 
-    const ipfsHash = response.data.IpfsHash;
-    const gatewayUrl = `https://${PINATA_GATEWAY}/ipfs/${ipfsHash}`;
-    const ipfsUrl = `ipfs://${ipfsHash}`;
+    const metadataHash = response.data.IpfsHash;
+    const gatewayUrl = `https://${PINATA_GATEWAY}/ipfs/${metadataHash}`;
+    const metadataUrl = `ipfs://${metadataHash}`;
 
-    res.json({
+    return res.status(200).json({
       success: true,
-      ipfsUrl,
-      gatewayUrl,
-      hash: ipfsHash
+      metadataUrl: `${PINATA_GATEWAY}/ipfs/${metadataHash}`,
+      metadataHash
     });
-
   } catch (error) {
-    console.error('Error uploading metadata to Pinata:', error);
-    res.status(500).json({
-      error: 'Failed to upload metadata to IPFS',
-      details: error instanceof Error ? error.message : 'Unknown error'
+    console.error('Error uploading metadata to IPFS:', error);
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
