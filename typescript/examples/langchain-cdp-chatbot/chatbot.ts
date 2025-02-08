@@ -10,12 +10,13 @@ import {
 } from "@coinbase/agentkit";
 import { getLangChainTools } from "@coinbase/agentkit-langchain";
 import { HumanMessage } from "@langchain/core/messages";
-import { MemorySaver } from "@langchain/langgraph";
-import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { ChatOpenAI } from "@langchain/openai";
+import { StructuredTool } from "@langchain/core/tools";
+import { initializeAgentExecutorWithOptions } from "langchain/agents";
 import * as dotenv from "dotenv";
 import * as fs from "fs";
 import * as readline from "readline";
+import { BidToEarnProvider } from "./src/action-providers/bidtoearn";
 
 dotenv.config();
 
@@ -66,7 +67,8 @@ async function initializeAgent() {
   try {
     // Initialize LLM
     const llm = new ChatOpenAI({
-      model: "gpt-4o-mini",
+      modelName: "gpt-4",
+      temperature: 0,
     });
 
     let walletDataStr: string | null = null;
@@ -91,6 +93,9 @@ async function initializeAgent() {
 
     const walletProvider = await CdpWalletProvider.configureWithWallet(config);
 
+    // Initialize BidToEarn provider
+    const bidToEarnProvider = new BidToEarnProvider(walletProvider);
+
     // Initialize AgentKit
     const agentkit = await AgentKit.from({
       walletProvider,
@@ -107,41 +112,31 @@ async function initializeAgent() {
           apiKeyName: process.env.CDP_API_KEY_NAME,
           apiKeyPrivateKey: process.env.CDP_API_KEY_PRIVATE_KEY?.replace(/\\n/g, "\n"),
         }),
+        bidToEarnProvider,
       ],
     });
 
     const tools = await getLangChainTools(agentkit);
 
-    // Store buffered conversation history in memory
-    const memory = new MemorySaver();
-    const agentConfig = { configurable: { thread_id: "CDP AgentKit Chatbot Example!" } };
-
-    // Create React Agent using the LLM and CDP AgentKit tools
-    const agent = createReactAgent({
-      llm,
-      tools,
-      checkpointSaver: memory,
-      messageModifier: `
-        You are a helpful agent that can interact onchain using the Coinbase Developer Platform AgentKit. You are 
-        empowered to interact onchain using your tools. If you ever need funds, you can request them from the 
-        faucet if you are on network ID 'base-sepolia'. If not, you can provide your wallet details and request 
-        funds from the user. Before executing your first action, get the wallet details to see what network 
-        you're on. If there is a 5XX (internal) HTTP error code, ask the user to try again later. If someone 
-        asks you to do something you can't do with your currently available tools, you must say so, and 
-        encourage them to implement it themselves using the CDP SDK + Agentkit, recommend they go to 
-        docs.cdp.coinbase.com for more information. Be concise and helpful with your responses. Refrain from 
-        restating your tools' descriptions unless it is explicitly requested.
-        `,
+    // Initialize the agent executor with proper prompt template
+    const executor = await initializeAgentExecutorWithOptions(tools as unknown as StructuredTool[], llm, {
+      agentType: "structured-chat-zero-shot-react-description",
+      verbose: false,
+      handleParsingErrors: true,
+      maxIterations: 3,
+      returnIntermediateSteps: false,
     });
+
+    const agentConfig = { configurable: { thread_id: "CDP AgentKit Chatbot Example!" } };
 
     // Save wallet data
     const exportedWallet = await walletProvider.exportWallet();
     fs.writeFileSync(WALLET_DATA_FILE, JSON.stringify(exportedWallet));
 
-    return { agent, config: agentConfig };
+    return { agent: executor, config: agentConfig };
   } catch (error) {
     console.error("Failed to initialize agent:", error);
-    throw error; // Re-throw to be handled by caller
+    throw error;
   }
 }
 
@@ -163,16 +158,12 @@ async function runAutonomousMode(agent: any, config: any, interval = 10) {
         "Be creative and do something interesting on the blockchain. " +
         "Choose an action or set of actions and execute it that highlights your abilities.";
 
-      const stream = await agent.stream({ messages: [new HumanMessage(thought)] }, config);
+      const result = await agent.invoke({
+        input: thought,
+      });
 
-      for await (const chunk of stream) {
-        if ("agent" in chunk) {
-          console.log(chunk.agent.messages[0].content);
-        } else if ("tools" in chunk) {
-          console.log(chunk.tools.messages[0].content);
-        }
-        console.log("-------------------");
-      }
+      console.log("\nResponse:", result.output);
+      console.log("-------------------");
 
       await new Promise(resolve => setTimeout(resolve, interval * 1000));
     } catch (error) {
@@ -211,15 +202,14 @@ async function runChatMode(agent: any, config: any) {
         break;
       }
 
-      const stream = await agent.stream({ messages: [new HumanMessage(userInput)] }, config);
+      try {
+        const result = await agent.invoke({
+          input: userInput,
+        });
 
-      for await (const chunk of stream) {
-        if ("agent" in chunk) {
-          console.log(chunk.agent.messages[0].content);
-        } else if ("tools" in chunk) {
-          console.log(chunk.tools.messages[0].content);
-        }
-        console.log("-------------------");
+        console.log("\nResponse:", result.output);
+      } catch (error) {
+        console.error("Error:", error instanceof Error ? error.message : "Unknown error");
       }
     }
   } catch (error) {
@@ -288,6 +278,118 @@ async function main() {
   }
 }
 
+// Helper function to initialize wallet provider
+async function initializeWalletProvider() {
+  const walletData = fs.readFileSync("wallet_data.txt", "utf8");
+  return JSON.parse(walletData);
+}
+
+export class Agent {
+  private executor: any;
+  private config: any;
+  private systemMessage: string;
+
+  constructor() {
+    this.systemMessage = `You are Biddy, a friendly and knowledgeable NFT auction assistant that helps users earn through the BidToEarn platform. You specialize in helping users maximize their earnings through NFT auctions.
+
+Your capabilities include:
+
+1. Creating Profitable NFT Auctions:
+   - Set optimal minimum bids and reserve prices
+   - Configure royalties (up to 10%) for ongoing earnings
+   - Recommend auction durations and bid increments
+   - Platform fee is only 2.5%
+
+2. Managing Earnings & Withdrawals:
+   - Check available withdrawals with "show my withdrawable amount"
+   - Withdraw funds directly with "withdraw my funds"
+   - Track pending withdrawals and auction proceeds
+   - View royalty earnings from past sales
+
+3. Bidding Strategy:
+   - Show active auctions with potential for profit
+   - Explain minimum bid increments
+   - Auto-refund system when outbid
+   - Track bidding history and outcomes
+
+4. Smart Contract Features:
+   - Automatic refunds when outbid
+   - Direct withdrawal through our interface
+   - Transparent fee structure
+   - Reserve price mechanism
+
+Common earnings-related queries I can help with:
+- "Show my withdrawable amount" - I'll check how much ETH you can withdraw
+- "Withdraw my funds" - I'll help you withdraw your available funds directly
+- "What are my auction earnings?" - I'll show proceeds from your auctions
+- "Track my royalty earnings" - I'll show your royalty earnings from past sales
+
+When users ask about earnings:
+1. Check their pending withdrawals first
+2. Look up their auction history
+3. Calculate total earnings including royalties
+4. Guide them through the withdrawal process if needed
+
+For withdrawals:
+1. First check available amount with "show my withdrawable amount"
+2. If funds are available, use "withdraw my funds" to process the withdrawal
+3. The withdrawal will be processed directly through our interface
+4. No need to visit Basescan or interact with the contract directly
+
+Always explain the earning opportunities:
+- Sellers earn sale proceeds minus 2.5% platform fee
+- Creators earn up to 10% royalties on sales
+- Outbid bidders can withdraw their funds immediately
+- All earnings can be withdrawn directly through our interface
+
+Remember to:
+- Proactively mention the auto-refund system when discussing bidding
+- Highlight the low 2.5% platform fee compared to other platforms
+- Explain how the reserve price can help maximize earnings
+- Guide users to withdraw available funds when detected
+
+Use emojis and be enthusiastic about earning opportunities, but maintain professionalism. Handle errors gracefully and always provide clear next steps.`;
+
+    this.initializeAgent().catch(error => {
+      console.error('Error initializing agent:', error);
+      throw error;
+    });
+  }
+
+  private async initializeAgent() {
+    try {
+      const { agent, config } = await initializeAgent();
+      this.executor = agent;
+      this.config = config;
+    } catch (error) {
+      console.error('Error initializing agent:', error);
+      throw error;
+    }
+  }
+
+  public async chat(message: string): Promise<string> {
+    try {
+      if (!this.executor) {
+        throw new Error('Agent not initialized');
+      }
+      
+      const result = await this.executor.invoke({
+        input: message,
+        config: {
+          ...this.config,
+          systemMessage: this.systemMessage,
+        },
+      });
+      
+      return result.output;
+    } catch (error) {
+      console.error('Error in chat:', error);
+      throw error;
+    }
+  }
+}
+
+// If running directly (not imported)
 if (require.main === module) {
   console.log("Starting Agent...");
   main().catch(error => {

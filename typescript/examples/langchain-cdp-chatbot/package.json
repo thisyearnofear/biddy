@@ -4,25 +4,40 @@
   "version": "1.0.0",
   "author": "Coinbase Inc.",
   "license": "Apache-2.0",
+  "private": true,
   "scripts": {
     "start": "NODE_OPTIONS='--no-warnings' ts-node ./chatbot.ts",
-    "dev": "nodemon ./chatbot.ts",
-    "lint": "eslint -c .eslintrc.json *.ts",
-    "lint:fix": "eslint -c .eslintrc.json *.ts --fix",
+    "start:web": "NODE_OPTIONS='--no-warnings' ts-node ./server.ts",
+    "dev": "ts-node-dev --respawn --transpile-only ./server.ts",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
     "format": "prettier --write \"**/*.{ts,js,cjs,json,md}\"",
     "format:check": "prettier -c .prettierrc --check \"**/*.{ts,js,cjs,json,md}\""
   },
   "dependencies": {
     "@coinbase/agentkit": "^0.1.0",
     "@coinbase/agentkit-langchain": "^0.1.0",
-    "@langchain/langgraph": "^0.2.21",
-    "@langchain/openai": "^0.3.14",
-    "@langchain/core": "^0.3.19",
-    "dotenv": "^16.4.5",
+    "@ethersproject/units": "^5.7.0",
+    "@langchain/community": "^0.0.26",
+    "@langchain/core": "^0.1.17",
+    "@langchain/langgraph": "^0.0.7",
+    "@langchain/openai": "^0.0.14",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.4",
+    "socket.io-client": "^4.7.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "viem": "^2.7.1",
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0",
-    "ts-node": "^10.9.2"
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.16",
+    "@typescript-eslint/eslint-plugin": "^6.7.4",
+    "@typescript-eslint/parser": "^6.7.4",
+    "eslint": "^8.50.0",
+    "nodemon": "^3.0.3",
+    "ts-node-dev": "^2.0.0"
   }
 }
