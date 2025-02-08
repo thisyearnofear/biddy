@@ -3,48 +3,132 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
 import { Agent } from './chatbot';
+import multer from 'multer';
+import axios from 'axios';
+import FormData from 'form-data';
 
-const BIDDY_PERSONALITY = `You are Biddy, a friendly and knowledgeable NFT auction assistant. You help users interact with the BidToEarn platform, which allows them to create and participate in NFT auctions.
-
-Your capabilities include:
-1. Creating NFT auctions with customizable parameters:
-   - Minimum bid amount
-   - Duration (default: 15 minutes)
-   - Extension time when bids are placed near the end (default: 5 minutes)
-   - Bid increment percentage (default: 5%)
-   - Royalty percentage (max 10%)
-   - Title, description, and image URI
-
-2. Auction Discovery and Management:
-   - View all active auctions
-   - Track auctions created by specific users
-   - Monitor auction status and time remaining
-   - Check highest bids and bidders
-
-3. Bidding and Financial Operations:
-   - Place bids on active auctions
-   - Withdraw available funds from previous bids
-   - Track your bidding history
-
-Always be helpful and guide users through the process. Use emojis occasionally to be friendly. When users want to create an auction or place a bid, make sure to explain the parameters and defaults.
-
-Some example interactions:
-- When users ask about active auctions, show them the list and highlight any ending soon
-- When users want to create an auction, guide them through the parameters they need to provide
-- When users want to place a bid, remind them of the minimum bid increment required
-
-Remember to handle errors gracefully and provide clear explanations when something goes wrong.`;
+const PINATA_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiI0MTM4MWIzZC0yMmI4LTQyYjAtODEzMC1jN2NkOGY0NzQzM2UiLCJlbWFpbCI6InBhcGFhbmR0aGVqaW1qYW1zQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6IkZSQTEifSx7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6Ik5ZQzEifV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiJjOGYzOWIxYTJiZWQ5NjI5Nzk3ZSIsInNjb3BlZEtleVNlY3JldCI6IjVmZGExYTUzOGZhOWNjMjZjOTA1MWY4NGQ5NmYzOWVjNWUwODJhMzkwYzY2MDc5OTM5ZjkwYTFhM2ExZWUwOTciLCJleHAiOjE3NTcyNDMwNzV9.hgf9T2vkSd2adVlFlWcr-blWyE6-bDwpt_kAtnOrJMg';
+const PINATA_GATEWAY = 'brown-continuous-rodent-619.mypinata.cloud';
 
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer);
 
+// Configure multer for file uploads
+const upload = multer({
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept images only
+    if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+      return cb(new Error('Only image files are allowed!'));
+    }
+    cb(null, true);
+  }
+});
+
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
 
 // Serve the main page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Upload to IPFS via Pinata
+app.post('/api/upload', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const formData = new FormData();
+    formData.append('file', req.file.buffer, {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype,
+    });
+
+    // Add pinata metadata
+    const metadata = JSON.stringify({
+      name: req.file.originalname,
+      keyvalues: {
+        app: 'BidToEarn',
+        type: 'nft-image'
+      }
+    });
+    formData.append('pinataMetadata', metadata);
+
+    // Add pinata options
+    const options = JSON.stringify({
+      cidVersion: 1,
+      wrapWithDirectory: false
+    });
+    formData.append('pinataOptions', options);
+
+    // Upload to Pinata
+    const response = await axios.post('https://api.pinata.cloud/pinning/pinFileToIPFS', formData, {
+      maxBodyLength: Infinity,
+      headers: {
+        'Authorization': `Bearer ${PINATA_JWT}`,
+        ...formData.getHeaders()
+      }
+    });
+
+    const ipfsHash = response.data.IpfsHash;
+    const gatewayUrl = `https://${PINATA_GATEWAY}/ipfs/${ipfsHash}`;
+    const ipfsUrl = `ipfs://${ipfsHash}`;
+
+    res.json({
+      success: true,
+      ipfsUrl,
+      gatewayUrl,
+      hash: ipfsHash
+    });
+
+  } catch (error) {
+    console.error('Error uploading to Pinata:', error);
+    res.status(500).json({
+      error: 'Failed to upload to IPFS',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Upload metadata to IPFS
+app.post('/api/upload/metadata', async (req, res) => {
+  try {
+    const metadata = req.body;
+    if (!metadata) {
+      return res.status(400).json({ error: 'No metadata provided' });
+    }
+
+    const response = await axios.post('https://api.pinata.cloud/pinning/pinJSONToIPFS', metadata, {
+      headers: {
+        'Authorization': `Bearer ${PINATA_JWT}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const ipfsHash = response.data.IpfsHash;
+    const gatewayUrl = `https://${PINATA_GATEWAY}/ipfs/${ipfsHash}`;
+    const ipfsUrl = `ipfs://${ipfsHash}`;
+
+    res.json({
+      success: true,
+      ipfsUrl,
+      gatewayUrl,
+      hash: ipfsHash
+    });
+
+  } catch (error) {
+    console.error('Error uploading metadata to Pinata:', error);
+    res.status(500).json({
+      error: 'Failed to upload metadata to IPFS',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 });
 
 // Handle WebSocket connections

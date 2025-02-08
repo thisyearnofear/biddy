@@ -29,8 +29,15 @@ dotenv.config();
 function validateEnvironment(): void {
   const missingVars: string[] = [];
 
-  // Check required variables
-  const requiredVars = ["OPENAI_API_KEY", "CDP_API_KEY_NAME", "CDP_API_KEY_PRIVATE_KEY"];
+  // Check required variables based on environment
+  const isProd = process.env.NODE_ENV === 'production';
+  const requiredVars = [
+    'OPENAI_API_KEY',
+    isProd ? 'PROD_CDP_API_KEY_NAME' : 'DEV_CDP_API_KEY_NAME',
+    isProd ? 'PROD_CDP_API_KEY_PRIVATE_KEY' : 'DEV_CDP_API_KEY_PRIVATE_KEY',
+    'WALLET_TYPE'
+  ];
+
   requiredVars.forEach(varName => {
     if (!process.env[varName]) {
       missingVars.push(varName);
@@ -39,7 +46,7 @@ function validateEnvironment(): void {
 
   // Exit if any required variables are missing
   if (missingVars.length > 0) {
-    console.error("Error: Required environment variables are not set");
+    console.error('Error: Required environment variables are not set');
     missingVars.forEach(varName => {
       console.error(`${varName}=your_${varName.toLowerCase()}_here`);
     });
@@ -48,7 +55,8 @@ function validateEnvironment(): void {
 
   // Warn about optional NETWORK_ID
   if (!process.env.NETWORK_ID) {
-    console.warn("Warning: NETWORK_ID not set, defaulting to base-sepolia testnet");
+    const defaultNetwork = isProd ? 'base-mainnet' : 'base-sepolia';
+    console.warn(`Warning: NETWORK_ID not set, defaulting to ${defaultNetwork}`);
   }
 }
 
@@ -56,7 +64,7 @@ function validateEnvironment(): void {
 validateEnvironment();
 
 // Configure a file to persist the agent's CDP MPC Wallet Data
-const WALLET_DATA_FILE = "wallet_data.txt";
+const WALLET_DATA_FILE = process.env.NODE_ENV === 'production' ? 'prod_wallet_data.txt' : 'dev_wallet_data.txt';
 
 /**
  * Initialize the agent with CDP Agentkit
@@ -83,20 +91,24 @@ async function initializeAgent() {
       }
     }
 
-    // Configure CDP Wallet Provider
+    const isProd = process.env.NODE_ENV === 'production';
+    
+    // Configure CDP Wallet Provider with environment-specific settings
     const config = {
-      apiKeyName: process.env.CDP_API_KEY_NAME,
-      apiKeyPrivateKey: process.env.CDP_API_KEY_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+      apiKeyName: isProd ? process.env.PROD_CDP_API_KEY_NAME : process.env.DEV_CDP_API_KEY_NAME,
+      apiKeyPrivateKey: (isProd ? process.env.PROD_CDP_API_KEY_PRIVATE_KEY : process.env.DEV_CDP_API_KEY_PRIVATE_KEY)?.replace(/\\n/g, "\n"),
       cdpWalletData: walletDataStr || undefined,
-      networkId: process.env.NETWORK_ID || "base-sepolia",
+      networkId: process.env.NETWORK_ID || (isProd ? 'base-mainnet' : 'base-sepolia'),
+      mnemonicPhrase: process.env.MNEMONIC_PHRASE, // Optional: For importing existing wallets
     };
 
+    // Initialize wallet provider
     const walletProvider = await CdpWalletProvider.configureWithWallet(config);
 
     // Initialize BidToEarn provider
     const bidToEarnProvider = new BidToEarnProvider(walletProvider);
 
-    // Initialize AgentKit
+    // Initialize AgentKit with configured providers
     const agentkit = await AgentKit.from({
       walletProvider,
       actionProviders: [
@@ -105,12 +117,12 @@ async function initializeAgent() {
         walletActionProvider(),
         erc20ActionProvider(),
         cdpApiActionProvider({
-          apiKeyName: process.env.CDP_API_KEY_NAME,
-          apiKeyPrivateKey: process.env.CDP_API_KEY_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+          apiKeyName: config.apiKeyName,
+          apiKeyPrivateKey: config.apiKeyPrivateKey,
         }),
         cdpWalletActionProvider({
-          apiKeyName: process.env.CDP_API_KEY_NAME,
-          apiKeyPrivateKey: process.env.CDP_API_KEY_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+          apiKeyName: config.apiKeyName,
+          apiKeyPrivateKey: config.apiKeyPrivateKey,
         }),
         bidToEarnProvider,
       ],
@@ -129,9 +141,15 @@ async function initializeAgent() {
 
     const agentConfig = { configurable: { thread_id: "CDP AgentKit Chatbot Example!" } };
 
-    // Save wallet data
+    // Save wallet data with encryption in production
     const exportedWallet = await walletProvider.exportWallet();
-    fs.writeFileSync(WALLET_DATA_FILE, JSON.stringify(exportedWallet));
+    if (isProd) {
+      // In production, implement secure storage (e.g., AWS Secrets Manager, Azure Key Vault)
+      // This is just a placeholder for demonstration
+      console.log('Production environment detected - implement secure wallet storage');
+    } else {
+      fs.writeFileSync(WALLET_DATA_FILE, JSON.stringify(exportedWallet));
+    }
 
     return { agent: executor, config: agentConfig };
   } catch (error) {
