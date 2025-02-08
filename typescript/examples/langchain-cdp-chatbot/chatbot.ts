@@ -79,31 +79,52 @@ async function initializeAgent() {
       temperature: 0,
     });
 
-    let walletDataStr: string | null = null;
-
-    // Read existing wallet data if available
-    if (fs.existsSync(WALLET_DATA_FILE)) {
-      try {
-        walletDataStr = fs.readFileSync(WALLET_DATA_FILE, "utf8");
-      } catch (error) {
-        console.error("Error reading wallet data:", error);
-        // Continue without wallet data
-      }
-    }
-
     const isProd = process.env.NODE_ENV === 'production';
     
     // Configure CDP Wallet Provider with environment-specific settings
-    const config = {
+    const config: {
+      apiKeyName: string | undefined;
+      apiKeyPrivateKey: string | undefined;
+      networkId: string;
+      mnemonicPhrase?: string;
+      cdpWalletData?: string;
+    } = {
       apiKeyName: isProd ? process.env.PROD_CDP_API_KEY_NAME : process.env.DEV_CDP_API_KEY_NAME,
       apiKeyPrivateKey: (isProd ? process.env.PROD_CDP_API_KEY_PRIVATE_KEY : process.env.DEV_CDP_API_KEY_PRIVATE_KEY)?.replace(/\\n/g, "\n"),
-      cdpWalletData: walletDataStr || undefined,
       networkId: process.env.NETWORK_ID || (isProd ? 'base-mainnet' : 'base-sepolia'),
       mnemonicPhrase: process.env.MNEMONIC_PHRASE, // Optional: For importing existing wallets
     };
 
-    // Initialize wallet provider
-    const walletProvider = await CdpWalletProvider.configureWithWallet(config);
+    let walletProvider;
+    
+    try {
+      if (process.env.CDP_WALLET_DATA) {
+        // If wallet data exists, use it
+        config.cdpWalletData = process.env.CDP_WALLET_DATA;
+        walletProvider = await CdpWalletProvider.configureWithWallet(config);
+        console.log('Successfully initialized existing CDP wallet');
+      } else {
+        // First time setup - create a new wallet and log the data
+        walletProvider = await CdpWalletProvider.configureWithWallet(config);
+        const exportedWallet = await walletProvider.exportWallet();
+        console.log('\n=== IMPORTANT: NEW WALLET CREATED ===');
+        console.log('Add this to your Vercel environment variables:');
+        console.log('CDP_WALLET_DATA=' + JSON.stringify(exportedWallet));
+        console.log('=====================================\n');
+        
+        if (isProd) {
+          console.log('⚠️  Production deployment detected without CDP_WALLET_DATA');
+          console.log('Please:');
+          console.log('1. Copy the CDP_WALLET_DATA value above');
+          console.log('2. Add it to your Vercel environment variables');
+          console.log('3. Redeploy the application');
+          process.exit(1); // Stop deployment until wallet data is configured
+        }
+      }
+    } catch (error) {
+      console.error('Failed to initialize CDP wallet:', error);
+      throw error;
+    }
 
     // Initialize BidToEarn provider
     const bidToEarnProvider = new BidToEarnProvider(walletProvider);
@@ -141,14 +162,21 @@ async function initializeAgent() {
 
     const agentConfig = { configurable: { thread_id: "CDP AgentKit Chatbot Example!" } };
 
-    // Save wallet data with encryption in production
+    // Save the latest wallet data to environment if it has changed
     const exportedWallet = await walletProvider.exportWallet();
-    if (isProd) {
-      // In production, implement secure storage (e.g., AWS Secrets Manager, Azure Key Vault)
-      // This is just a placeholder for demonstration
-      console.log('Production environment detected - implement secure wallet storage');
-    } else {
-      fs.writeFileSync(WALLET_DATA_FILE, JSON.stringify(exportedWallet));
+    const currentWalletData = process.env.CDP_WALLET_DATA ? JSON.parse(process.env.CDP_WALLET_DATA) : null;
+    
+    // Compare stringified versions to ensure proper comparison
+    if (JSON.stringify(exportedWallet) !== JSON.stringify(currentWalletData)) {
+      // In production, implement secure storage (e.g., environment variables in your hosting platform)
+      if (isProd) {
+        console.log('Production environment detected - update CDP_WALLET_DATA in your hosting platform');
+        console.log('New wallet data:', JSON.stringify(exportedWallet));
+      } else {
+        // For development, you might want to update your local .env file
+        console.log('Development environment - update CDP_WALLET_DATA in your .env file with:');
+        console.log('CDP_WALLET_DATA=' + JSON.stringify(exportedWallet));
+      }
     }
 
     return { agent: executor, config: agentConfig };
