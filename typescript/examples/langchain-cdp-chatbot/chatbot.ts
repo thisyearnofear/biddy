@@ -12,7 +12,8 @@ import { getLangChainTools } from "@coinbase/agentkit-langchain";
 import { HumanMessage } from "@langchain/core/messages";
 import { ChatOpenAI } from "@langchain/openai";
 import { StructuredTool } from "@langchain/core/tools";
-import { initializeAgentExecutorWithOptions } from "langchain/agents";
+import { AgentExecutor, createStructuredChatAgent } from "langchain/agents";
+import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
 import * as dotenv from "dotenv";
 import * as fs from "fs";
 import * as readline from "readline";
@@ -134,18 +135,27 @@ async function initializeAgent() {
 
     const tools = await getLangChainTools(agentkit);
 
-    // Initialize the agent executor with proper prompt template and type casting
-    const executor = await initializeAgentExecutorWithOptions(
-      tools as unknown as StructuredTool[],
-      llm as any, // Type cast to resolve compatibility issue
-      {
-        agentType: "structured-chat-zero-shot-react-description",
-        verbose: false,
-        handleParsingErrors: true,
-        maxIterations: 3,
-        returnIntermediateSteps: false,
-      }
-    );
+    // Create the prompt template
+    const prompt = ChatPromptTemplate.fromMessages([
+      ["system", "You are Biddy, a friendly and knowledgeable NFT auction assistant that helps users earn through the BidToEarn platform."],
+      new MessagesPlaceholder("chat_history"),
+      ["human", "{input}"],
+      new MessagesPlaceholder("agent_scratchpad"),
+    ]);
+
+    // Create the agent using the new API
+    const agent = await createStructuredChatAgent({
+      llm,
+      tools: tools as unknown as StructuredTool[],
+      prompt,
+    });
+
+    const executor = new AgentExecutor({
+      agent,
+      tools: tools as unknown as StructuredTool[],
+      maxIterations: 3,
+      returnIntermediateSteps: false,
+    });
 
     const agentConfig = { configurable: { thread_id: "CDP AgentKit Chatbot Example!" } };
 
