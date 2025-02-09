@@ -1,11 +1,9 @@
 [build]
   base = "typescript"
   command = """
-    cd .. && \
-    npm install && \
-    cd examples/langchain-cdp-chatbot && \
-    npm install && \
-    npm run build
+    cd agentkit && npm install && npm run build && cd .. && \
+    cd framework-extensions/langchain && npm install && npm run build && cd ../.. && \
+    cd examples/langchain-cdp-chatbot && npm install && npm run build
   """
   publish = "examples/langchain-cdp-chatbot/dist"
   functions = "examples/langchain-cdp-chatbot/dist/netlify/functions"
@@ -33,5 +31,9 @@
 
 [functions]
   external_node_modules = ["express", "socket.io"]
-  included_files = ["examples/langchain-cdp-chatbot/public/**"]
+  included_files = [
+    "examples/langchain-cdp-chatbot/public/**",
+    "agentkit/dist/**",
+    "framework-extensions/langchain/dist/**"
+  ]
   node_bundler = "esbuild" 
