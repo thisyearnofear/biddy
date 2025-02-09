@@ -1,6 +1,7 @@
-import { ActionProvider, CreateAction, WalletProvider, Network, Action } from "@coinbase/agentkit";
-import { Contract, Provider, Signer } from "ethers";
-import { parseEther } from "ethers/lib/utils";
+import { ActionProvider, Action, Network as SDKNetwork, WalletProvider } from "@coinbase/agentkit";
+import { Network } from "../../network";
+import { EvmWalletProvider } from "../../wallet-providers";
+import { ethers } from "ethers";
 import {
   CreateAuctionSchema,
   PlaceBidSchema,
@@ -21,16 +22,19 @@ const BID_TO_EARN_ABI = [
 
 const CONTRACT_ADDRESS = "0x7877Ac5C8158AB46ad608CB6990eCcB2A5265718";
 
-export class BidToEarnProvider extends ActionProvider<WalletProvider> {
-  private contract: Contract;
+export class BidToEarnProvider extends ActionProvider {
+  private contract: ethers.Contract;
   public readonly name = "BidToEarn";
 
-  constructor(provider: Provider, signer: Signer) {
-    super(provider, signer);
-    this.contract = new Contract(CONTRACT_ADDRESS, BID_TO_EARN_ABI, signer);
+  constructor(provider: ethers.Provider, signer: ethers.Signer) {
+    super("bidtoearn", []);
+    this.contract = new ethers.Contract(CONTRACT_ADDRESS, BID_TO_EARN_ABI, signer);
   }
 
   getActions(walletProvider: WalletProvider): Action[] {
+    if (!(walletProvider instanceof EvmWalletProvider)) {
+      return [];
+    }
     return [
       CreateAuctionSchema,
       PlaceBidSchema,
@@ -41,12 +45,12 @@ export class BidToEarnProvider extends ActionProvider<WalletProvider> {
     ];
   }
 
-  supportsNetwork(network: Network): boolean {
+  supportsNetwork(network: SDKNetwork): boolean {
     // Base Sepolia testnet
-    return network.chainId === 84532;
+    return network.chainId ? BigInt(network.chainId) === BigInt(84532) : false;
   }
 
-  async execute(action: typeof CreateAction): Promise<string> {
+  async execute(action: { name: string; parameters: any }): Promise<string> {
     switch (action.name) {
       case "createAuction": {
         const {
@@ -61,7 +65,7 @@ export class BidToEarnProvider extends ActionProvider<WalletProvider> {
           reservePrice,
         } = action.parameters;
         const tx = await this.contract.createAuction(
-          parseEther(minBid),
+          ethers.parseEther(minBid),
           duration,
           extensionTime,
           bidIncrementPercentage,
@@ -70,7 +74,7 @@ export class BidToEarnProvider extends ActionProvider<WalletProvider> {
             description,
             imageURI,
             royaltyPercentage,
-            reservePrice: parseEther(reservePrice),
+            reservePrice: ethers.parseEther(reservePrice),
             reservePriceMet: false,
           },
         );
@@ -81,7 +85,7 @@ export class BidToEarnProvider extends ActionProvider<WalletProvider> {
       case "placeBid": {
         const { tokenId, bidAmount } = action.parameters;
         const tx = await this.contract.placeBid(tokenId, {
-          value: parseEther(bidAmount),
+          value: ethers.parseEther(bidAmount),
         });
         await tx.wait();
         return `Placed bid with transaction hash: ${tx.hash}`;
