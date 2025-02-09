@@ -1,0 +1,27 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "typescript/examples/langchain-cdp-chatbot/server.ts",
+            "use": "@vercel/node"
+        },
+        {
+            "src": "typescript/examples/langchain-cdp-chatbot/public/**",
+            "use": "@vercel/static"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/socket.io/(.*)",
+            "dest": "typescript/examples/langchain-cdp-chatbot/server.ts"
+        },
+        {
+            "src": "/api/(.*)",
+            "dest": "typescript/examples/langchain-cdp-chatbot/server.ts"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "typescript/examples/langchain-cdp-chatbot/public/$1"
+        }
+    ]
+}
