@@ -1,5 +1,6 @@
 {
     "version": 2,
+    "rootDirectory": "typescript/examples/langchain-cdp-chatbot",
     "builds": [
         {
             "src": "server.ts",
