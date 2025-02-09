@@ -11,9 +11,10 @@ const PINATA_JWT =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiI0MTM4MWIzZC0yMmI4LTQyYjAtODEzMC1jN2NkOGY0NzQzM2UiLCJlbWFpbCI6InBhcGFhbmR0aGVqaW1qYW1zQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6IkZSQTEifSx7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6Ik5ZQzEifV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiJjOGYzOWIxYTJiZWQ5NjI5Nzk3ZSIsInNjb3BlZEtleVNlY3JldCI6IjVmZGExYTUzOGZhOWNjMjZjOTA1MWY4NGQ5NmYzOWVjNWUwODJhMzkwYzY2MDc5OTM5ZjkwYTFhM2ExZWUwOTciLCJleHAiOjE3NTcyNDMwNzV9.hgf9T2vkSd2adVlFlWcr-blWyE6-bDwpt_kAtnOrJMg";
 const PINATA_GATEWAY = "brown-continuous-rodent-619.mypinata.cloud";
 
-const app = express();
+// Create Express app
+export const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer);
+export const io = new Server(httpServer);
 
 // Configure multer for file uploads
 const upload = multer({
@@ -156,8 +157,11 @@ io.on("connection", socket => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
-httpServer.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log("Use Ctrl+C to stop the server");
-});
+// Only start the server if we're not in a Netlify Function
+if (!process.env.NETLIFY) {
+  const PORT = process.env.PORT || 3000;
+  httpServer.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log("Use Ctrl+C to stop the server");
+  });
+}

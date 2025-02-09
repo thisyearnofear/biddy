@@ -1,0 +1,29 @@
+[build]
+  base = "typescript"
+  command = "cd examples/langchain-cdp-chatbot && npm install && npm run build"
+  publish = "examples/langchain-cdp-chatbot/dist"
+  functions = "examples/langchain-cdp-chatbot/dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[redirects]]
+  from = "/socket.io/*"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[functions]
+  external_node_modules = ["express", "socket.io"]
+  included_files = ["examples/langchain-cdp-chatbot/public/**"] 

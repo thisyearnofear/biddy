@@ -131,3 +131,6 @@ api.json
 # TS Docs
 **/typescript/docs/
 docs/
+
+# Local Netlify folder
+.netlify

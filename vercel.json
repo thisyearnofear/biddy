@@ -1,32 +1,35 @@
 {
     "version": 2,
+    "buildCommand": "cd examples/langchain-cdp-chatbot && npm install && npm run build",
+    "outputDirectory": "examples/langchain-cdp-chatbot/dist",
+    "installCommand": "npm install",
     "builds": [
         {
-            "src": "typescript/examples/langchain-cdp-chatbot/server.ts",
+            "src": "examples/langchain-cdp-chatbot/dist/server.js",
             "use": "@vercel/node"
         },
         {
-            "src": "typescript/examples/langchain-cdp-chatbot/public/**",
+            "src": "examples/langchain-cdp-chatbot/public/**",
             "use": "@vercel/static"
         }
     ],
     "routes": [
         {
             "src": "/socket.io/(.*)",
-            "dest": "/typescript/examples/langchain-cdp-chatbot/server.ts"
+            "dest": "/examples/langchain-cdp-chatbot/dist/server.js"
         },
         {
             "src": "/api/(.*)",
-            "dest": "/typescript/examples/langchain-cdp-chatbot/server.ts"
+            "dest": "/examples/langchain-cdp-chatbot/dist/server.js"
         },
         {
             "src": "/(.*)",
-            "dest": "/typescript/examples/langchain-cdp-chatbot/public/$1",
+            "dest": "/examples/langchain-cdp-chatbot/public/$1",
             "continue": true
         },
         {
             "src": "/(.*)",
-            "dest": "/typescript/examples/langchain-cdp-chatbot/server.ts"
+            "dest": "/examples/langchain-cdp-chatbot/dist/server.js"
         }
     ]
 }
