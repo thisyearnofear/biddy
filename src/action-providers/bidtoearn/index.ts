@@ -1,7 +1,8 @@
 import { ActionProvider, Action, Network as SDKNetwork, WalletProvider } from "@coinbase/agentkit";
 import { Network } from "../../network";
 import { EvmWalletProvider } from "../../wallet-providers";
-import { ethers } from "ethers";
+import { Contract, Provider, Signer } from "ethers";
+import { parseEther } from "@ethersproject/units";
 import {
   CreateAuctionSchema,
   PlaceBidSchema,
@@ -23,12 +24,12 @@ const BID_TO_EARN_ABI = [
 const CONTRACT_ADDRESS = "0x7877Ac5C8158AB46ad608CB6990eCcB2A5265718";
 
 export class BidToEarnProvider extends ActionProvider {
-  private contract: ethers.Contract;
+  private contract: Contract;
   public readonly name = "BidToEarn";
 
-  constructor(provider: ethers.Provider, signer: ethers.Signer) {
+  constructor(provider: Provider, signer: Signer) {
     super("bidtoearn", []);
-    this.contract = new ethers.Contract(CONTRACT_ADDRESS, BID_TO_EARN_ABI, signer);
+    this.contract = new Contract(CONTRACT_ADDRESS, BID_TO_EARN_ABI, signer);
   }
 
   getActions(walletProvider: WalletProvider): Action[] {
@@ -65,7 +66,7 @@ export class BidToEarnProvider extends ActionProvider {
           reservePrice,
         } = action.parameters;
         const tx = await this.contract.createAuction(
-          ethers.parseEther(minBid),
+          parseEther(minBid),
           duration,
           extensionTime,
           bidIncrementPercentage,
@@ -74,7 +75,7 @@ export class BidToEarnProvider extends ActionProvider {
             description,
             imageURI,
             royaltyPercentage,
-            reservePrice: ethers.parseEther(reservePrice),
+            reservePrice: parseEther(reservePrice),
             reservePriceMet: false,
           },
         );
@@ -85,7 +86,7 @@ export class BidToEarnProvider extends ActionProvider {
       case "placeBid": {
         const { tokenId, bidAmount } = action.parameters;
         const tx = await this.contract.placeBid(tokenId, {
-          value: ethers.parseEther(bidAmount),
+          value: parseEther(bidAmount),
         });
         await tx.wait();
         return `Placed bid with transaction hash: ${tx.hash}`;
