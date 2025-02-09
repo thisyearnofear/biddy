@@ -1,3 +1,10 @@
-.git
-.env
-node_modules 
+# Ignore everything
+*
+
+# Include only the chatbot directory
+!typescript/examples/langchain-cdp-chatbot/**
+
+# But still ignore these in the chatbot directory
+typescript/examples/langchain-cdp-chatbot/node_modules
+typescript/examples/langchain-cdp-chatbot/.env
+typescript/examples/langchain-cdp-chatbot/dist 
