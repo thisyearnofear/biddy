@@ -27,7 +27,7 @@
     "@langchain/core": "^0.1.17",
     "@langchain/langgraph": "^0.0.7",
     "@langchain/openai": "^0.0.14",
-    "@netlify/functions": "^2.6.0",
+    "@netlify/functions": "^2.8.2",
     "@types/express": "^4.17.21",
     "@types/multer": "^1.4.12",
     "@types/node": "^20.11.16",
