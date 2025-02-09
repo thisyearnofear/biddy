@@ -1,9 +1,9 @@
-import { Handler } from '@netlify/functions';
+import { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
 import serverless from 'serverless-http';
 import { app } from '../../server';
 
 // Create handler for Netlify Functions
-export const handler: Handler = async (event, context) => {
+export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
   // Handle WebSocket upgrade requests
   if (event.headers['upgrade']?.toLowerCase() === 'websocket') {
     return {
@@ -20,5 +20,6 @@ export const handler: Handler = async (event, context) => {
 
   // Handle regular HTTP requests
   const handler = serverless(app);
-  return handler(event, context);
+  const response = await handler(event, context);
+  return response;
 }; 

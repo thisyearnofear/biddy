@@ -12,7 +12,8 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "netlify dev",
-    "build": "tsc && mkdir -p dist/netlify && cp -r netlify/functions dist/netlify/ && cp -r public dist/",
+    "prebuild": "cd ../../agentkit && npm install && npm run build && cd ../framework-extensions/langchain && npm install && npm run build",
+    "build": "tsc --build && mkdir -p dist/netlify && cp -r netlify/functions dist/netlify/ && cp -r public dist/",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "format": "prettier --write \"**/*.{ts,js,cjs,json,md}\"",
