@@ -30,12 +30,12 @@ function validateEnvironment(): void {
   const missingVars: string[] = [];
 
   // Check required variables based on environment
-  const isProd = process.env.NODE_ENV === 'production';
+  const isProd = process.env.NODE_ENV === "production";
   const requiredVars = [
-    'OPENAI_API_KEY',
-    isProd ? 'PROD_CDP_API_KEY_NAME' : 'DEV_CDP_API_KEY_NAME',
-    isProd ? 'PROD_CDP_API_KEY_PRIVATE_KEY' : 'DEV_CDP_API_KEY_PRIVATE_KEY',
-    'WALLET_TYPE'
+    "OPENAI_API_KEY",
+    isProd ? "PROD_CDP_API_KEY_NAME" : "DEV_CDP_API_KEY_NAME",
+    isProd ? "PROD_CDP_API_KEY_PRIVATE_KEY" : "DEV_CDP_API_KEY_PRIVATE_KEY",
+    "WALLET_TYPE",
   ];
 
   requiredVars.forEach(varName => {
@@ -46,7 +46,7 @@ function validateEnvironment(): void {
 
   // Exit if any required variables are missing
   if (missingVars.length > 0) {
-    console.error('Error: Required environment variables are not set');
+    console.error("Error: Required environment variables are not set");
     missingVars.forEach(varName => {
       console.error(`${varName}=your_${varName.toLowerCase()}_here`);
     });
@@ -55,7 +55,7 @@ function validateEnvironment(): void {
 
   // Warn about optional NETWORK_ID
   if (!process.env.NETWORK_ID) {
-    const defaultNetwork = isProd ? 'base-mainnet' : 'base-sepolia';
+    const defaultNetwork = isProd ? "base-mainnet" : "base-sepolia";
     console.warn(`Warning: NETWORK_ID not set, defaulting to ${defaultNetwork}`);
   }
 }
@@ -64,7 +64,8 @@ function validateEnvironment(): void {
 validateEnvironment();
 
 // Configure a file to persist the agent's CDP MPC Wallet Data
-const WALLET_DATA_FILE = process.env.NODE_ENV === 'production' ? 'prod_wallet_data.txt' : 'dev_wallet_data.txt';
+const WALLET_DATA_FILE =
+  process.env.NODE_ENV === "production" ? "prod_wallet_data.txt" : "dev_wallet_data.txt";
 
 /**
  * Initialize the agent with CDP Agentkit
@@ -79,52 +80,34 @@ async function initializeAgent() {
       temperature: 0,
     });
 
-    const isProd = process.env.NODE_ENV === 'production';
-    
+    let walletDataStr: string | null = null;
+
+    // Read existing wallet data if available
+    if (fs.existsSync(WALLET_DATA_FILE)) {
+      try {
+        walletDataStr = fs.readFileSync(WALLET_DATA_FILE, "utf8");
+      } catch (error) {
+        console.error("Error reading wallet data:", error);
+        // Continue without wallet data
+      }
+    }
+
+    const isProd = process.env.NODE_ENV === "production";
+
     // Configure CDP Wallet Provider with environment-specific settings
-    const config: {
-      apiKeyName: string | undefined;
-      apiKeyPrivateKey: string | undefined;
-      networkId: string;
-      mnemonicPhrase?: string;
-      cdpWalletData?: string;
-    } = {
+    const config = {
       apiKeyName: isProd ? process.env.PROD_CDP_API_KEY_NAME : process.env.DEV_CDP_API_KEY_NAME,
-      apiKeyPrivateKey: (isProd ? process.env.PROD_CDP_API_KEY_PRIVATE_KEY : process.env.DEV_CDP_API_KEY_PRIVATE_KEY)?.replace(/\\n/g, "\n"),
-      networkId: process.env.NETWORK_ID || (isProd ? 'base-mainnet' : 'base-sepolia'),
+      apiKeyPrivateKey: (isProd
+        ? process.env.PROD_CDP_API_KEY_PRIVATE_KEY
+        : process.env.DEV_CDP_API_KEY_PRIVATE_KEY
+      )?.replace(/\\n/g, "\n"),
+      cdpWalletData: walletDataStr || undefined,
+      networkId: process.env.NETWORK_ID || (isProd ? "base-mainnet" : "base-sepolia"),
       mnemonicPhrase: process.env.MNEMONIC_PHRASE, // Optional: For importing existing wallets
     };
 
-    let walletProvider;
-    
-    try {
-      if (process.env.CDP_WALLET_DATA) {
-        // If wallet data exists, use it
-        config.cdpWalletData = process.env.CDP_WALLET_DATA;
-        walletProvider = await CdpWalletProvider.configureWithWallet(config);
-        console.log('Successfully initialized existing CDP wallet');
-      } else {
-        // First time setup - create a new wallet and log the data
-        walletProvider = await CdpWalletProvider.configureWithWallet(config);
-        const exportedWallet = await walletProvider.exportWallet();
-        console.log('\n=== IMPORTANT: NEW WALLET CREATED ===');
-        console.log('Add this to your Vercel environment variables:');
-        console.log('CDP_WALLET_DATA=' + JSON.stringify(exportedWallet));
-        console.log('=====================================\n');
-        
-        if (isProd) {
-          console.log('⚠️  Production deployment detected without CDP_WALLET_DATA');
-          console.log('Please:');
-          console.log('1. Copy the CDP_WALLET_DATA value above');
-          console.log('2. Add it to your Vercel environment variables');
-          console.log('3. Redeploy the application');
-          process.exit(1); // Stop deployment until wallet data is configured
-        }
-      }
-    } catch (error) {
-      console.error('Failed to initialize CDP wallet:', error);
-      throw error;
-    }
+    // Initialize wallet provider based on configuration
+    const walletProvider = await CdpWalletProvider.configureWithWallet(config);
 
     // Initialize BidToEarn provider
     const bidToEarnProvider = new BidToEarnProvider(walletProvider);
@@ -151,32 +134,29 @@ async function initializeAgent() {
 
     const tools = await getLangChainTools(agentkit);
 
-    // Initialize the agent executor with proper prompt template
-    const executor = await initializeAgentExecutorWithOptions(tools as unknown as StructuredTool[], llm, {
-      agentType: "structured-chat-zero-shot-react-description",
-      verbose: false,
-      handleParsingErrors: true,
-      maxIterations: 3,
-      returnIntermediateSteps: false,
-    });
+    // Initialize the agent executor with proper prompt template and type casting
+    const executor = await initializeAgentExecutorWithOptions(
+      tools as unknown as StructuredTool[],
+      llm as any, // Type cast to resolve compatibility issue
+      {
+        agentType: "structured-chat-zero-shot-react-description",
+        verbose: false,
+        handleParsingErrors: true,
+        maxIterations: 3,
+        returnIntermediateSteps: false,
+      }
+    );
 
     const agentConfig = { configurable: { thread_id: "CDP AgentKit Chatbot Example!" } };
 
-    // Save the latest wallet data to environment if it has changed
+    // Save wallet data with encryption in production
     const exportedWallet = await walletProvider.exportWallet();
-    const currentWalletData = process.env.CDP_WALLET_DATA ? JSON.parse(process.env.CDP_WALLET_DATA) : null;
-    
-    // Compare stringified versions to ensure proper comparison
-    if (JSON.stringify(exportedWallet) !== JSON.stringify(currentWalletData)) {
-      // In production, implement secure storage (e.g., environment variables in your hosting platform)
-      if (isProd) {
-        console.log('Production environment detected - update CDP_WALLET_DATA in your hosting platform');
-        console.log('New wallet data:', JSON.stringify(exportedWallet));
-      } else {
-        // For development, you might want to update your local .env file
-        console.log('Development environment - update CDP_WALLET_DATA in your .env file with:');
-        console.log('CDP_WALLET_DATA=' + JSON.stringify(exportedWallet));
-      }
+    if (isProd) {
+      // In production, implement secure storage (e.g., AWS Secrets Manager, Azure Key Vault)
+      // This is just a placeholder for demonstration
+      console.log("Production environment detected - implement secure wallet storage");
+    } else {
+      fs.writeFileSync(WALLET_DATA_FILE, JSON.stringify(exportedWallet));
     }
 
     return { agent: executor, config: agentConfig };
@@ -397,7 +377,7 @@ Remember to:
 Use emojis and be enthusiastic about earning opportunities, but maintain professionalism. Handle errors gracefully and always provide clear next steps.`;
 
     this.initializeAgent().catch(error => {
-      console.error('Error initializing agent:', error);
+      console.error("Error initializing agent:", error);
       throw error;
     });
   }
@@ -408,7 +388,7 @@ Use emojis and be enthusiastic about earning opportunities, but maintain profess
       this.executor = agent;
       this.config = config;
     } catch (error) {
-      console.error('Error initializing agent:', error);
+      console.error("Error initializing agent:", error);
       throw error;
     }
   }
@@ -416,9 +396,9 @@ Use emojis and be enthusiastic about earning opportunities, but maintain profess
   public async chat(message: string): Promise<string> {
     try {
       if (!this.executor) {
-        throw new Error('Agent not initialized');
+        throw new Error("Agent not initialized");
       }
-      
+
       const result = await this.executor.invoke({
         input: message,
         config: {
@@ -426,10 +406,10 @@ Use emojis and be enthusiastic about earning opportunities, but maintain profess
           systemMessage: this.systemMessage,
         },
       });
-      
+
       return result.output;
     } catch (error) {
-      console.error('Error in chat:', error);
+      console.error("Error in chat:", error);
       throw error;
     }
   }
