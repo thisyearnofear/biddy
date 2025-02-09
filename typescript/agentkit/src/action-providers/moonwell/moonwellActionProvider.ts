@@ -80,7 +80,7 @@ Important notes:
         ? MOONWELL_BASE_ADDRESSES
         : MOONWELL_BASE_SEPOLIA_ADDRESSES;
 
-    if (!networkObject[args.mTokenAddress]) {
+    if (!(args.mTokenAddress in networkObject)) {
       return "Error: Invalid MToken address";
     }
 
@@ -91,13 +91,13 @@ Important notes:
 
       if (
         network.networkId === "base-mainnet" &&
-        "MOONWELL_WETH" === networkObject[args.mTokenAddress]
+        networkObject[args.mTokenAddress as keyof typeof networkObject] === "MOONWELL_WETH"
       ) {
         // For ETH minting, use parseEther (18 decimals)
         atomicAssets = parseEther(args.assets);
       } else {
         // For other tokens, use the correct decimals
-        const decimals = TOKEN_DECIMALS[args.tokenAddress];
+        const decimals = TOKEN_DECIMALS[args.tokenAddress as keyof typeof TOKEN_DECIMALS];
         if (!decimals) {
           return `Error: Unsupported token address ${args.tokenAddress}. Please verify the token address is correct.`;
         }
@@ -107,7 +107,7 @@ Important notes:
       // Check if this is a WETH mint on mainnet
       if (
         network.networkId === "base-mainnet" &&
-        "MOONWELL_WETH" === networkObject[args.mTokenAddress]
+        networkObject[args.mTokenAddress as keyof typeof networkObject] === "MOONWELL_WETH"
       ) {
         // Use the router for ETH mints - no approval needed since we're sending native ETH
         const data = encodeFunctionData({
@@ -224,13 +224,14 @@ Important notes:
         ? MOONWELL_BASE_ADDRESSES
         : MOONWELL_BASE_SEPOLIA_ADDRESSES;
 
-    if (!networkObject[args.mTokenAddress]) {
+    if (!(args.mTokenAddress in networkObject)) {
       return "Error: Invalid MToken address";
     }
 
     try {
       // Handle different token decimals
-      const decimals = MTOKENS_UNDERLYING_DECIMALS[MOONWELL_BASE_ADDRESSES[args.mTokenAddress]];
+      const tokenName = networkObject[args.mTokenAddress as keyof typeof networkObject];
+      const decimals = MTOKENS_UNDERLYING_DECIMALS[tokenName as keyof typeof MTOKENS_UNDERLYING_DECIMALS];
 
       if (!decimals) {
         return `Error: Unsupported token address ${args.mTokenAddress}. Please verify the token address is correct.`;

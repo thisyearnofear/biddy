@@ -1,0 +1,3 @@
+const walletProviderParam = params.find((param: any) => {
+  // ... existing code ...
+}); 

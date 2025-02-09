@@ -164,7 +164,7 @@ function validateActionMethodArguments(
     );
   }
 
-  const walletProviderParam = params.find(param => {
+  const walletProviderParam = params.find((param: { prototype?: any }) => {
     if (!param || !param.prototype) {
       return false;
     }
