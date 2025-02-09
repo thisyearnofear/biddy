@@ -19,19 +19,18 @@
     "experimentalDecorators": true,
     "strictPropertyInitialization": false,
     "emitDecoratorMetadata": true,
-    "typeRoots": ["./node_modules/@types"],
-    "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
       "*": ["node_modules/*"]
     },
-    "preserveSymlinks": true,
+    "typeRoots": ["./node_modules/@types"],
     "outDir": "./dist",
     "rootDir": "."
   },
-  "include": ["*.ts"],
-  "exclude": ["node_modules", "cdk.out"]
+  "include": ["*.ts", "src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }
