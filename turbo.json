@@ -1,23 +1,17 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "pipeline": {
-    "build": {
-      "outputs": [
-        "dist/**"
-      ],
-      "dependsOn": [
-        "^build"
-      ]
-    }
-  },
   "globalDependencies": [
-    "$OPENAI_API_KEY",
-    "$DEV_CDP_API_KEY_NAME",
-    "$DEV_CDP_API_KEY_PRIVATE_KEY",
-    "$NETWORK_ID",
-    "$WALLET_TYPE"
+    ".env"
   ],
   "tasks": {
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
+    },
     "test": {
       "dependsOn": [
         "build"

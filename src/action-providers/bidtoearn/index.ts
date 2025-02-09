@@ -1,8 +1,6 @@
-import { ActionProvider, Action, Network as SDKNetwork, WalletProvider } from "@coinbase/agentkit";
-import { Network } from "../../network";
-import { EvmWalletProvider } from "../../wallet-providers";
+import { ActionProvider, CreateAction, WalletProvider, Network, Action } from "@coinbase/agentkit";
 import { Contract, Provider, Signer } from "ethers";
-import { parseEther } from "@ethersproject/units";
+import { parseEther } from "ethers/lib/utils";
 import {
   CreateAuctionSchema,
   PlaceBidSchema,
@@ -23,19 +21,16 @@ const BID_TO_EARN_ABI = [
 
 const CONTRACT_ADDRESS = "0x7877Ac5C8158AB46ad608CB6990eCcB2A5265718";
 
-export class BidToEarnProvider extends ActionProvider {
+export class BidToEarnProvider extends ActionProvider<WalletProvider> {
   private contract: Contract;
   public readonly name = "BidToEarn";
 
   constructor(provider: Provider, signer: Signer) {
-    super("bidtoearn", []);
+    super(provider, signer);
     this.contract = new Contract(CONTRACT_ADDRESS, BID_TO_EARN_ABI, signer);
   }
 
   getActions(walletProvider: WalletProvider): Action[] {
-    if (!(walletProvider instanceof EvmWalletProvider)) {
-      return [];
-    }
     return [
       CreateAuctionSchema,
       PlaceBidSchema,
@@ -46,12 +41,12 @@ export class BidToEarnProvider extends ActionProvider {
     ];
   }
 
-  supportsNetwork(network: SDKNetwork): boolean {
+  supportsNetwork(network: Network): boolean {
     // Base Sepolia testnet
-    return network.chainId ? BigInt(network.chainId) === BigInt(84532) : false;
+    return network.chainId === 84532;
   }
 
-  async execute(action: { name: string; parameters: any }): Promise<string> {
+  async execute(action: typeof CreateAction): Promise<string> {
     switch (action.name) {
       case "createAuction": {
         const {

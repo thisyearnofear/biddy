@@ -80,7 +80,7 @@ Important notes:
         ? MOONWELL_BASE_ADDRESSES
         : MOONWELL_BASE_SEPOLIA_ADDRESSES;
 
-    if (!(args.mTokenAddress in networkObject)) {
+    if (!networkObject[args.mTokenAddress]) {
       return "Error: Invalid MToken address";
     }
 
@@ -91,13 +91,13 @@ Important notes:
 
       if (
         network.networkId === "base-mainnet" &&
-        networkObject[args.mTokenAddress as keyof typeof networkObject] === "MOONWELL_WETH"
+        "MOONWELL_WETH" === networkObject[args.mTokenAddress]
       ) {
         // For ETH minting, use parseEther (18 decimals)
         atomicAssets = parseEther(args.assets);
       } else {
         // For other tokens, use the correct decimals
-        const decimals = TOKEN_DECIMALS[args.tokenAddress as keyof typeof TOKEN_DECIMALS];
+        const decimals = TOKEN_DECIMALS[args.tokenAddress];
         if (!decimals) {
           return `Error: Unsupported token address ${args.tokenAddress}. Please verify the token address is correct.`;
         }
@@ -107,7 +107,7 @@ Important notes:
       // Check if this is a WETH mint on mainnet
       if (
         network.networkId === "base-mainnet" &&
-        networkObject[args.mTokenAddress as keyof typeof networkObject] === "MOONWELL_WETH"
+        "MOONWELL_WETH" === networkObject[args.mTokenAddress]
       ) {
         // Use the router for ETH mints - no approval needed since we're sending native ETH
         const data = encodeFunctionData({
@@ -124,7 +124,9 @@ Important notes:
 
         const receipt = await wallet.waitForTransactionReceipt(txHash);
 
-        return `Deposited ${args.assets} ETH to Moonwell WETH via router with transaction hash: ${txHash}\nTransaction receipt: ${JSON.stringify(
+        return `Deposited ${
+          args.assets
+        } ETH to Moonwell WETH via router with transaction hash: ${txHash}\nTransaction receipt: ${JSON.stringify(
           receipt,
           (_, value) => (typeof value === "bigint" ? value.toString() : value),
         )}`;
@@ -163,7 +165,9 @@ Important notes:
           throw new Error(`Mint transaction failed with status ${receipt.status}`);
         }
 
-        return `Deposited ${args.assets} to Moonwell MToken ${args.mTokenAddress} with transaction hash: ${txHash}\nTransaction receipt: ${JSON.stringify(
+        return `Deposited ${args.assets} to Moonwell MToken ${
+          args.mTokenAddress
+        } with transaction hash: ${txHash}\nTransaction receipt: ${JSON.stringify(
           receipt,
           (_, value) => (typeof value === "bigint" ? value.toString() : value),
         )}`;
@@ -224,14 +228,13 @@ Important notes:
         ? MOONWELL_BASE_ADDRESSES
         : MOONWELL_BASE_SEPOLIA_ADDRESSES;
 
-    if (!(args.mTokenAddress in networkObject)) {
+    if (!networkObject[args.mTokenAddress]) {
       return "Error: Invalid MToken address";
     }
 
     try {
       // Handle different token decimals
-      const tokenName = networkObject[args.mTokenAddress as keyof typeof networkObject];
-      const decimals = MTOKENS_UNDERLYING_DECIMALS[tokenName as keyof typeof MTOKENS_UNDERLYING_DECIMALS];
+      const decimals = MTOKENS_UNDERLYING_DECIMALS[MOONWELL_BASE_ADDRESSES[args.mTokenAddress]];
 
       if (!decimals) {
         return `Error: Unsupported token address ${args.mTokenAddress}. Please verify the token address is correct.`;
@@ -261,7 +264,9 @@ Important notes:
         throw new Error(`Redeem transaction failed with status ${receipt.status}`);
       }
 
-      return `Redeemed ${args.assets} from Moonwell MToken ${args.mTokenAddress} with transaction hash: ${txHash}\nTransaction receipt: ${JSON.stringify(
+      return `Redeemed ${args.assets} from Moonwell MToken ${
+        args.mTokenAddress
+      } with transaction hash: ${txHash}\nTransaction receipt: ${JSON.stringify(
         receipt,
         (_, value) => (typeof value === "bigint" ? value.toString() : value),
       )}`;
