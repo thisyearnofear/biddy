@@ -75,27 +75,38 @@ const WALLET_DATA_FILE =
  */
 async function initializeAgent() {
   try {
-    // Initialize LLM
+    // Initialize LLM with production-specific configurations
     const llm = new ChatOpenAI({
       modelName: "gpt-4",
       temperature: 0,
+      maxRetries: 3,
+      timeout: 60000, // 60 second timeout
     });
 
     let walletDataStr: string | null = null;
+    const isProd = process.env.NODE_ENV === "production";
+    const maxRetries = 3;
+    let retryCount = 0;
 
-    // Read existing wallet data if available
-    if (fs.existsSync(WALLET_DATA_FILE)) {
+    // Enhanced wallet data reading with retries
+    while (retryCount < maxRetries) {
       try {
-        walletDataStr = fs.readFileSync(WALLET_DATA_FILE, "utf8");
+        if (fs.existsSync(WALLET_DATA_FILE)) {
+          walletDataStr = fs.readFileSync(WALLET_DATA_FILE, "utf8");
+          break;
+        }
       } catch (error) {
-        console.error("Error reading wallet data:", error);
-        // Continue without wallet data
+        console.error(`Error reading wallet data (attempt ${retryCount + 1}/${maxRetries}):`, error);
+        retryCount++;
+        if (retryCount === maxRetries) {
+          console.warn("Failed to read wallet data after maximum retries, continuing without wallet data");
+        } else {
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+        }
       }
     }
 
-    const isProd = process.env.NODE_ENV === "production";
-
-    // Configure CDP Wallet Provider with environment-specific settings
+    // Enhanced CDP configuration
     const config = {
       apiKeyName: isProd ? process.env.PROD_CDP_API_KEY_NAME : process.env.DEV_CDP_API_KEY_NAME,
       apiKeyPrivateKey: (isProd
@@ -104,16 +115,26 @@ async function initializeAgent() {
       )?.replace(/\\n/g, "\n"),
       cdpWalletData: walletDataStr || undefined,
       networkId: process.env.NETWORK_ID || (isProd ? "base-mainnet" : "base-sepolia"),
-      mnemonicPhrase: process.env.MNEMONIC_PHRASE, // Optional: For importing existing wallets
+      mnemonicPhrase: process.env.MNEMONIC_PHRASE,
+      timeout: 30000, // 30 second timeout for wallet operations
+      retryConfig: {
+        maxRetries: 3,
+        initialRetryDelay: 1000,
+        maxRetryDelay: 5000,
+      },
     };
 
-    // Initialize wallet provider based on configuration
+    console.log(`Initializing wallet provider for ${isProd ? 'production' : 'development'} environment...`);
     const walletProvider = await CdpWalletProvider.configureWithWallet(config);
+    console.log('Wallet provider initialized successfully');
 
-    // Initialize BidToEarn provider
+    // Initialize BidToEarn provider with enhanced error handling
+    console.log('Initializing BidToEarn provider...');
     const bidToEarnProvider = new BidToEarnProvider(walletProvider);
+    console.log('BidToEarn provider initialized successfully');
 
-    // Initialize AgentKit with configured providers
+    // Initialize AgentKit with all required providers
+    console.log('Initializing AgentKit...');
     const agentkit = await AgentKit.from({
       walletProvider,
       actionProviders: [
@@ -132,39 +153,57 @@ async function initializeAgent() {
         bidToEarnProvider,
       ],
     });
+    console.log('AgentKit initialized successfully');
 
     const tools = await getLangChainTools(agentkit);
+    console.log(`Loaded ${tools.length} tools successfully`);
 
-    // Create the prompt template
+    // Enhanced prompt template with more context
     const prompt = ChatPromptTemplate.fromMessages([
-      ["system", "You are Biddy, a friendly and knowledgeable NFT auction assistant that helps users earn through the BidToEarn platform."],
-      new MessagesPlaceholder("chat_history"),
+      ["system", `You are Biddy, a friendly and knowledgeable NFT auction assistant that helps users earn through the BidToEarn platform. You are running in ${isProd ? 'production' : 'development'} mode on the ${config.networkId} network.`],
+      ["system", "You have access to the following tools:\n{tools}\n\nTo use a tool, specify its name: {tool_names}"],
       ["human", "{input}"],
-      new MessagesPlaceholder("agent_scratchpad"),
+      ["ai", "{agent_scratchpad}"]
     ]);
 
-    // Create the agent using the new API
+    // Create agent with enhanced configuration
     const agent = await createStructuredChatAgent({
       llm,
       tools: tools as unknown as StructuredTool[],
       prompt,
     });
 
+    // Configure executor with production-ready settings
     const executor = new AgentExecutor({
       agent,
       tools: tools as unknown as StructuredTool[],
-      maxIterations: 3,
-      returnIntermediateSteps: false,
+      maxIterations: isProd ? 15 : 10, // More iterations in production
+      returnIntermediateSteps: !isProd, // Only show debug steps in development
+      verbose: !isProd, // Verbose logging in development only
     });
 
-    const agentConfig = { configurable: { thread_id: "CDP AgentKit Chatbot Example!" } };
+    const agentConfig = { 
+      configurable: { 
+        thread_id: `CDP AgentKit ${isProd ? 'Production' : 'Development'} Instance`,
+        environment: isProd ? 'production' : 'development',
+        network: config.networkId,
+      } 
+    };
 
-    // Save wallet data with encryption in production
+    // Enhanced wallet data persistence
     const exportedWallet = await walletProvider.exportWallet();
     if (isProd) {
-      // In production, implement secure storage (e.g., AWS Secrets Manager, Azure Key Vault)
-      // This is just a placeholder for demonstration
-      console.log("Production environment detected - implement secure wallet storage");
+      // Production wallet data handling
+      try {
+        // TODO: Implement secure storage (AWS Secrets Manager, Azure Key Vault, etc.)
+        console.log("Production environment detected - implement secure wallet storage");
+        // For now, encrypt the wallet data before saving
+        const encryptedData = JSON.stringify(exportedWallet); // TODO: Add encryption
+        fs.writeFileSync(WALLET_DATA_FILE, encryptedData, { mode: 0o600 }); // Restrictive permissions
+      } catch (error) {
+        console.error("Error saving wallet data:", error);
+        // Continue even if wallet save fails - don't break the agent
+      }
     } else {
       fs.writeFileSync(WALLET_DATA_FILE, JSON.stringify(exportedWallet));
     }
@@ -172,7 +211,7 @@ async function initializeAgent() {
     return { agent: executor, config: agentConfig };
   } catch (error) {
     console.error("Failed to initialize agent:", error);
-    throw error;
+    throw new Error(`Agent initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -324,6 +363,20 @@ export class Agent {
   private executor: any;
   private config: any;
   private systemMessage: string;
+  private initialized: boolean = false;
+  private initPromise: Promise<void>;
+  private initRetries: number = 0;
+  private readonly maxInitRetries: number = 3;
+  private readonly initRetryDelay: number = 1000;
+  private lastError: Error | null = null;
+  private healthCheck: {
+    lastCheck: number;
+    status: 'healthy' | 'degraded' | 'failed';
+    error?: string;
+  } = {
+    lastCheck: Date.now(),
+    status: 'healthy'
+  };
 
   constructor() {
     this.systemMessage = `You are Biddy, a friendly and knowledgeable NFT auction assistant that helps users earn through the BidToEarn platform. You specialize in helping users maximize their earnings through NFT auctions.
@@ -352,63 +405,71 @@ Your capabilities include:
    - Automatic refunds when outbid
    - Direct withdrawal through our interface
    - Transparent fee structure
-   - Reserve price mechanism
+   - Reserve price mechanism`;
 
-Common earnings-related queries I can help with:
-- "Show my withdrawable amount" - I'll check how much ETH you can withdraw
-- "Withdraw my funds" - I'll help you withdraw your available funds directly
-- "What are my auction earnings?" - I'll show proceeds from your auctions
-- "Track my royalty earnings" - I'll show your royalty earnings from past sales
-
-When users ask about earnings:
-1. Check their pending withdrawals first
-2. Look up their auction history
-3. Calculate total earnings including royalties
-4. Guide them through the withdrawal process if needed
-
-For withdrawals:
-1. First check available amount with "show my withdrawable amount"
-2. If funds are available, use "withdraw my funds" to process the withdrawal
-3. The withdrawal will be processed directly through our interface
-4. No need to visit Basescan or interact with the contract directly
-
-Always explain the earning opportunities:
-- Sellers earn sale proceeds minus 2.5% platform fee
-- Creators earn up to 10% royalties on sales
-- Outbid bidders can withdraw their funds immediately
-- All earnings can be withdrawn directly through our interface
-
-Remember to:
-- Proactively mention the auto-refund system when discussing bidding
-- Highlight the low 2.5% platform fee compared to other platforms
-- Explain how the reserve price can help maximize earnings
-- Guide users to withdraw available funds when detected
-
-Use emojis and be enthusiastic about earning opportunities, but maintain professionalism. Handle errors gracefully and always provide clear next steps.`;
-
-    this.initializeAgent().catch(error => {
+    // Start initialization immediately in constructor
+    this.initPromise = this.initializeWithRetry().catch(error => {
       console.error("Error initializing agent:", error);
+      this.healthCheck.status = 'failed';
+      this.healthCheck.error = error instanceof Error ? error.message : 'Unknown error';
       throw error;
     });
   }
 
-  private async initializeAgent() {
-    try {
-      const { agent, config } = await initializeAgent();
-      this.executor = agent;
-      this.config = config;
-    } catch (error) {
-      console.error("Error initializing agent:", error);
-      throw error;
+  private async initializeWithRetry(): Promise<void> {
+    while (this.initRetries < this.maxInitRetries) {
+      try {
+        const { agent, config } = await initializeAgent();
+        this.executor = agent;
+        this.config = config;
+        this.initialized = true;
+        this.healthCheck.status = 'healthy';
+        this.healthCheck.lastCheck = Date.now();
+        return;
+      } catch (error) {
+        this.initRetries++;
+        this.lastError = error instanceof Error ? error : new Error('Unknown error during initialization');
+        this.healthCheck.status = 'degraded';
+        this.healthCheck.error = this.lastError.message;
+        
+        if (this.initRetries === this.maxInitRetries) {
+          throw new Error(`Failed to initialize agent after ${this.maxInitRetries} attempts: ${this.lastError.message}`);
+        }
+        
+        // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, this.initRetryDelay * Math.pow(2, this.initRetries - 1)));
+      }
+    }
+  }
+
+  public async getHealth(): Promise<typeof this.healthCheck> {
+    return this.healthCheck;
+  }
+
+  private async reinitializeIfNeeded(): Promise<void> {
+    const now = Date.now();
+    const hoursSinceLastCheck = (now - this.healthCheck.lastCheck) / (1000 * 60 * 60);
+    
+    // Reinitialize if it's been more than 12 hours or if status is degraded
+    if (hoursSinceLastCheck > 12 || this.healthCheck.status === 'degraded') {
+      this.initialized = false;
+      this.initRetries = 0;
+      this.initPromise = this.initializeWithRetry();
+      await this.initPromise;
     }
   }
 
   public async chat(message: string): Promise<string> {
     try {
-      if (!this.executor) {
+      // Wait for initialization and check health
+      await this.initPromise;
+      await this.reinitializeIfNeeded();
+      
+      if (!this.initialized || !this.executor) {
         throw new Error("Agent not initialized");
       }
 
+      const startTime = Date.now();
       const result = await this.executor.invoke({
         input: message,
         config: {
@@ -417,9 +478,36 @@ Use emojis and be enthusiastic about earning opportunities, but maintain profess
         },
       });
 
+      // Update health check after successful operation
+      this.healthCheck.lastCheck = Date.now();
+      this.healthCheck.status = 'healthy';
+      delete this.healthCheck.error;
+
+      // Log performance metrics in development
+      if (process.env.NODE_ENV !== 'production') {
+        const duration = Date.now() - startTime;
+        console.log(`Chat request completed in ${duration}ms`);
+        if (result.intermediateSteps) {
+          console.log("Debug - Intermediate steps:", JSON.stringify(result.intermediateSteps, null, 2));
+        }
+      }
+
       return result.output;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error in chat:", error);
+      
+      // Update health check on error
+      this.healthCheck.status = 'degraded';
+      this.healthCheck.error = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (error instanceof Error) {
+        if (error.message.includes("max iterations")) {
+          return "I apologize, but I wasn't able to complete your request within the allowed number of steps. Could you please try rephrasing your request or breaking it down into smaller parts?";
+        } else if (error.message.includes("Agent not initialized")) {
+          return "I'm currently experiencing technical difficulties. Please try again in a few moments while I reinitialize.";
+        }
+      }
+      
       throw error;
     }
   }

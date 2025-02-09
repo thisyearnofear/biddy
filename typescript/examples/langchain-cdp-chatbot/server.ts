@@ -1,20 +1,55 @@
 import express from "express";
 import { createServer } from "http";
-import { Server } from "socket.io";
 import path from "path";
 import { Agent } from "./chatbot";
 import multer from "multer";
 import axios from "axios";
 import FormData from "form-data";
+import cors from "cors";
 
-const PINATA_JWT =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiI0MTM4MWIzZC0yMmI4LTQyYjAtODEzMC1jN2NkOGY0NzQzM2UiLCJlbWFpbCI6InBhcGFhbmR0aGVqaW1qYW1zQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6IkZSQTEifSx7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6Ik5ZQzEifV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiJjOGYzOWIxYTJiZWQ5NjI5Nzk3ZSIsInNjb3BlZEtleVNlY3JldCI6IjVmZGExYTUzOGZhOWNjMjZjOTA1MWY4NGQ5NmYzOWVjNWUwODJhMzkwYzY2MDc5OTM5ZjkwYTFhM2ExZWUwOTciLCJleHAiOjE3NTcyNDMwNzV9.hgf9T2vkSd2adVlFlWcr-blWyE6-bDwpt_kAtnOrJMg";
-const PINATA_GATEWAY = "brown-continuous-rodent-619.mypinata.cloud";
+// Validate required environment variables
+const REQUIRED_ENV_VARS = [
+  "PINATA_JWT",
+  "PINATA_GATEWAY",
+  "OPENAI_API_KEY",
+  "PROD_CDP_API_KEY_NAME",
+  "PROD_CDP_API_KEY_PRIVATE_KEY",
+];
+
+REQUIRED_ENV_VARS.forEach(varName => {
+  if (!process.env[varName]) {
+    throw new Error(`Required environment variable ${varName} is not set`);
+  }
+});
 
 // Create Express app
 export const app = express();
 const httpServer = createServer(app);
-export const io = new Server(httpServer);
+
+// Configure CORS
+const corsOptions = {
+  origin: true, // Reflects the request origin
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+  maxAge: 86400,
+};
+
+app.use(cors(corsOptions));
+app.use(express.json());
+
+// Serve static files
+const publicPath = path.join(__dirname, "public");
+app.use(express.static(publicPath));
+
+// Fallback route for SPA
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api/") || req.path === "/health") {
+    next();
+  } else {
+    res.sendFile(path.join(publicPath, "index.html"));
+  }
+});
 
 // Configure multer for file uploads
 const upload = multer({
@@ -22,7 +57,6 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Accept images only
     if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
       return cb(new Error("Only image files are allowed!"));
     }
@@ -30,13 +64,46 @@ const upload = multer({
   },
 });
 
-// Serve static files from the public directory
-app.use(express.static(path.join(__dirname, "public")));
-app.use(express.json());
+// Initialize agent pool with cleanup
+const agentPool: { [key: string]: { agent: Agent; lastAccessed: number } } = {};
 
-// Serve the main page
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+// Cleanup inactive agents every 30 minutes
+setInterval(() => {
+  const now = Date.now();
+  Object.entries(agentPool).forEach(([sessionId, data]) => {
+    if (now - data.lastAccessed > 30 * 60 * 1000) {
+      delete agentPool[sessionId];
+    }
+  });
+}, 30 * 60 * 1000);
+
+// Chat endpoint
+app.post("/api/chat", async (req, res) => {
+  try {
+    const { message, sessionId } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: "Message is required" });
+    }
+
+    if (!agentPool[sessionId]) {
+      agentPool[sessionId] = {
+        agent: new Agent(),
+        lastAccessed: Date.now(),
+      };
+    } else {
+      agentPool[sessionId].lastAccessed = Date.now();
+    }
+
+    const response = await agentPool[sessionId].agent.chat(message);
+    res.json({ response });
+  } catch (error) {
+    console.error("Error in chat endpoint:", error);
+    res.status(500).json({
+      error: "An error occurred while processing your request",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
 });
 
 // Upload to IPFS via Pinata
@@ -52,7 +119,6 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
       contentType: req.file.mimetype,
     });
 
-    // Add pinata metadata
     const metadata = JSON.stringify({
       name: req.file.originalname,
       keyvalues: {
@@ -62,24 +128,22 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
     });
     formData.append("pinataMetadata", metadata);
 
-    // Add pinata options
     const options = JSON.stringify({
       cidVersion: 1,
       wrapWithDirectory: false,
     });
     formData.append("pinataOptions", options);
 
-    // Upload to Pinata
     const response = await axios.post("https://api.pinata.cloud/pinning/pinFileToIPFS", formData, {
       maxBodyLength: Infinity,
       headers: {
-        Authorization: `Bearer ${PINATA_JWT}`,
+        Authorization: `Bearer ${process.env.PINATA_JWT}`,
         ...formData.getHeaders(),
       },
     });
 
     const ipfsHash = response.data.IpfsHash;
-    const gatewayUrl = `https://${PINATA_GATEWAY}/ipfs/${ipfsHash}`;
+    const gatewayUrl = `https://${process.env.PINATA_GATEWAY}/ipfs/${ipfsHash}`;
     const ipfsUrl = `ipfs://${ipfsHash}`;
 
     res.json({
@@ -107,13 +171,13 @@ app.post("/api/upload/metadata", async (req, res) => {
 
     const response = await axios.post("https://api.pinata.cloud/pinning/pinJSONToIPFS", metadata, {
       headers: {
-        Authorization: `Bearer ${PINATA_JWT}`,
+        Authorization: `Bearer ${process.env.PINATA_JWT}`,
         "Content-Type": "application/json",
       },
     });
 
     const ipfsHash = response.data.IpfsHash;
-    const gatewayUrl = `https://${PINATA_GATEWAY}/ipfs/${ipfsHash}`;
+    const gatewayUrl = `https://${process.env.PINATA_GATEWAY}/ipfs/${ipfsHash}`;
     const ipfsUrl = `ipfs://${ipfsHash}`;
 
     res.json({
@@ -131,37 +195,27 @@ app.post("/api/upload/metadata", async (req, res) => {
   }
 });
 
-// Handle WebSocket connections
-io.on("connection", socket => {
-  console.log("Client connected");
-
-  // Create a new agent instance for each connection
-  const agent = new Agent();
-
-  socket.on("message", async (message: string) => {
-    try {
-      // Process the message using the agent
-      const response = await agent.chat(message);
-      socket.emit("response", response);
-    } catch (error) {
-      console.error("Error processing message:", error);
-      socket.emit(
-        "error",
-        "I encountered an issue while processing your request. Please try again or rephrase your question.",
-      );
-    }
-  });
-
-  socket.on("disconnect", () => {
-    console.log("Client disconnected");
-  });
+// Health check endpoint
+app.get("/health", async (req, res) => {
+  try {
+    const agent = new Agent();
+    const health = await agent.getHealth();
+    res.status(health.status === "healthy" ? 200 : 503).json(health);
+  } catch (error) {
+    res.status(500).json({
+      status: "failed",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
 });
 
-// Only start the server if we're not in a Netlify Function
-if (!process.env.NETLIFY) {
-  const PORT = process.env.PORT || 3000;
+// Start server if not in serverless environment
+if (!process.env.VERCEL) {
+  const PORT = parseInt(process.env.PORT || "3000", 10);
   httpServer.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    console.log("Use Ctrl+C to stop the server");
   });
 }
+
+// Export for serverless
+export default app;

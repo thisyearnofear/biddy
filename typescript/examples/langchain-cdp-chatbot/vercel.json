@@ -16,6 +16,10 @@
             "dest": "/server.ts"
         },
         {
+            "src": "/health",
+            "dest": "/server.ts"
+        },
+        {
             "src": "/api/(.*)",
             "dest": "/server.ts"
         },
@@ -28,5 +32,8 @@
             "src": "/(.*)",
             "dest": "/server.ts"
         }
-    ]
+    ],
+    "env": {
+        "NODE_ENV": "production"
+    }
 }

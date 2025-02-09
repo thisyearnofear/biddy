@@ -1,766 +1,914 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Biddy - Bid to Earn Auction Assistant</title>
-    <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body class="bg-gray-100 h-screen">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body class="bg-gray-100 h-screen">
     <div class="container mx-auto px-4 h-screen flex flex-col py-4">
-        <!-- Header with capabilities -->
-        <div class="bg-white rounded-lg shadow-lg mb-4 p-4">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center">
-                    <i class="fas fa-robot text-3xl text-blue-600 mr-3"></i>
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-800">Meet Biddy</h1>
-                        <p class="text-gray-600">Your Bid-to-Earn NFT Assistant</p>
-                    </div>
-                </div>
-                <div class="flex space-x-4">
-                    <button 
-                        onclick="showCapabilitiesModal()"
-                        class="bg-gray-100 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
-                    >
-                        <i class="fas fa-lightbulb mr-2"></i>
-                        What Can Biddy Do?
-                    </button>
-                    <button 
-                        onclick="showCreateAuctionModal()"
-                        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                    >
-                        <i class="fas fa-plus mr-2"></i>
-                        Create Auction
-                    </button>
-                </div>
+      <!-- Header with capabilities -->
+      <div class="bg-white rounded-lg shadow-lg mb-4 p-4">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center">
+            <i class="fas fa-robot text-3xl text-blue-600 mr-3"></i>
+            <div>
+              <h1 class="text-2xl font-bold text-gray-800">Meet Biddy</h1>
+              <p class="text-gray-600">Your Bid-to-Earn NFT Assistant</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-green-50 p-4 rounded-lg border-2 border-green-200">
-                    <h3 class="font-semibold text-green-800 mb-2">
-                        <i class="fas fa-coins mr-2"></i>Bid to Earn
-                    </h3>
-                    <ul class="text-sm text-gray-700 space-y-1">
-                        <li>• Earn when you're outbid!</li>
-                        <li>• Higher bids = More earnings</li>
-                        <li>• Instant withdrawal available</li>
-                    </ul>
-                    <div class="mt-3 text-xs text-gray-600">
-                        Example: Bid 1 ETH → Outbid at 1.05 ETH → Earn 0.0125 ETH (2.5% of increase)
-                    </div>
-                </div>
-                <div class="bg-blue-50 p-4 rounded-lg">
-                    <h3 class="font-semibold text-blue-800 mb-2">
-                        <i class="fas fa-gavel mr-2"></i>Create & Earn
-                    </h3>
-                    <ul class="text-sm text-gray-700 space-y-1">
-                        <li>• Create NFT auctions</li>
-                        <li>• Earn royalties (up to 10%)</li>
-                        <li>• Set reserve prices</li>
-                    </ul>
-                </div>
-                <div class="bg-purple-50 p-4 rounded-lg">
-                    <h3 class="font-semibold text-purple-800 mb-2">
-                        <i class="fas fa-chart-line mr-2"></i>Track Earnings
-                    </h3>
-                    <ul class="text-sm text-gray-700 space-y-1">
-                        <li>• Monitor bid earnings</li>
-                        <li>• View outbid profits</li>
-                        <li>• Track royalty income</li>
-                    </ul>
-                </div>
+          </div>
+          <div class="flex space-x-4">
+            <button
+              onclick="showCapabilitiesModal()"
+              class="bg-gray-100 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
+            >
+              <i class="fas fa-lightbulb mr-2"></i>
+              What Can Biddy Do?
+            </button>
+            <button
+              onclick="showCreateAuctionModal()"
+              class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+            >
+              <i class="fas fa-plus mr-2"></i>
+              Create Auction
+            </button>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-green-50 p-4 rounded-lg border-2 border-green-200">
+            <h3 class="font-semibold text-green-800 mb-2">
+              <i class="fas fa-coins mr-2"></i>Bid to Earn
+            </h3>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>• Earn when you're outbid!</li>
+              <li>• Higher bids = More earnings</li>
+              <li>• Instant withdrawal available</li>
+            </ul>
+            <div class="mt-3 text-xs text-gray-600">
+              Example: Bid 1 ETH → Outbid at 1.05 ETH → Earn 0.0125 ETH (2.5% of increase)
             </div>
+          </div>
+          <div class="bg-blue-50 p-4 rounded-lg">
+            <h3 class="font-semibold text-blue-800 mb-2">
+              <i class="fas fa-gavel mr-2"></i>Create & Earn
+            </h3>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>• Create NFT auctions</li>
+              <li>• Earn royalties (up to 10%)</li>
+              <li>• Set reserve prices</li>
+            </ul>
+          </div>
+          <div class="bg-purple-50 p-4 rounded-lg">
+            <h3 class="font-semibold text-purple-800 mb-2">
+              <i class="fas fa-chart-line mr-2"></i>Track Earnings
+            </h3>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>• Monitor bid earnings</li>
+              <li>• View outbid profits</li>
+              <li>• Track royalty income</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Interface -->
+      <div class="bg-white rounded-lg shadow-lg flex-1 flex flex-col overflow-hidden">
+        <!-- Chat Messages -->
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4">
+          <div class="flex flex-col space-y-1">
+            <div class="flex items-start">
+              <div class="bg-blue-100 rounded-lg px-4 py-2 max-w-[80%]">
+                <p class="text-gray-800">
+                  👋 Hi! I'm Biddy, your NFT auction assistant. I help you earn through auctions!
+                  Try:
+                </p>
+                <ul class="mt-2 text-gray-700 space-y-1">
+                  <li>• "Show me my available withdrawals"</li>
+                  <li>• "Create an auction with 5% royalties"</li>
+                  <li>• "What are my earnings from auctions?"</li>
+                  <li>• "Show active auctions I can bid on"</li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Chat Interface -->
-        <div class="bg-white rounded-lg shadow-lg flex-1 flex flex-col overflow-hidden">
-            <!-- Chat Messages -->
-            <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4">
-                <div class="flex flex-col space-y-1">
-                    <div class="flex items-start">
-                        <div class="bg-blue-100 rounded-lg px-4 py-2 max-w-[80%]">
-                            <p class="text-gray-800">👋 Hi! I'm Biddy, your NFT auction assistant. I help you earn through auctions! Try:</p>
-                            <ul class="mt-2 text-gray-700 space-y-1">
-                                <li>• "Show me my available withdrawals"</li>
-                                <li>• "Create an auction with 5% royalties"</li>
-                                <li>• "What are my earnings from auctions?"</li>
-                                <li>• "Show active auctions I can bid on"</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Input Area -->
-            <div class="border-t p-4 bg-gray-50">
-                <form id="chat-form" class="flex space-x-4">
-                    <input 
-                        type="text" 
-                        id="message-input"
-                        class="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:border-blue-500"
-                        placeholder="Ask Biddy anything about NFT auctions..."
-                    >
-                    <button 
-                        type="submit"
-                        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                    >
-                        <i class="fas fa-paper-plane mr-2"></i>
-                        Send
-                    </button>
-                </form>
-            </div>
+        <!-- Input Area -->
+        <div class="border-t p-4 bg-gray-50">
+          <form id="chat-form" class="flex space-x-4">
+            <input
+              type="text"
+              id="message-input"
+              class="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:border-blue-500"
+              placeholder="Ask Biddy anything about NFT auctions..."
+            />
+            <button
+              type="submit"
+              class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+            >
+              <i class="fas fa-paper-plane mr-2"></i>
+              Send
+            </button>
+          </form>
         </div>
+      </div>
     </div>
 
     <!-- Create Auction Modal -->
-    <div id="createAuctionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
-        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-800">Create New Auction</h2>
-                    <p class="text-sm text-gray-600 mt-1">All fields have sensible defaults - just adjust what you need!</p>
-                </div>
-                <button onclick="hideCreateAuctionModal()" class="text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            
-            <form id="auctionForm" class="space-y-6">
-                <!-- Basic Details -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-gray-700">NFT Details</h3>
-                    <div class="grid grid-cols-1 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Title</label>
-                            <input type="text" name="title" placeholder="My Awesome NFT" required
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <p class="mt-1 text-sm text-gray-500">A catchy title for your NFT auction</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Image URL</label>
-                            <div 
-                                id="upload-zone"
-                                class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md relative"
-                                ondrop="handleDrop(event)"
-                                ondragover="handleDragOver(event)"
-                                ondragleave="handleDragLeave(event)"
-                            >
-                                <div class="space-y-1 text-center">
-                                    <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-3"></i>
-                                    <div class="flex text-sm text-gray-600">
-                                        <label class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
-                                            <span>Upload a file</span>
-                                            <input type="file" class="sr-only" id="nft-image" accept="image/jpeg,image/png,image/gif" onchange="validateAndUploadFile(event)">
-                                        </label>
-                                        <p class="pl-1">or drag and drop</p>
-                                    </div>
-                                    <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
-                                </div>
-                                <!-- Upload Progress -->
-                                <div id="upload-progress" class="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center hidden">
-                                    <div class="text-center">
-                                        <div class="w-48 h-2 bg-gray-200 rounded-full mb-2">
-                                            <div id="progress-bar" class="h-full bg-blue-600 rounded-full" style="width: 0%"></div>
-                                        </div>
-                                        <p id="progress-text" class="text-sm text-gray-600">Uploading... 0%</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <input type="hidden" name="imageURI" id="imageURI-input">
-                            <div id="image-preview" class="mt-3 hidden">
-                                <img src="" alt="NFT Preview" class="max-h-48 rounded-lg mx-auto">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Description</label>
-                            <textarea name="description" rows="2" placeholder="Describe your NFT..." required
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
-                            <p class="mt-1 text-sm text-gray-500">Tell potential buyers about your NFT</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Metadata Preview -->
-                <div id="metadata-preview" class="hidden mt-4 p-4 bg-gray-50 rounded-lg">
-                    <h4 class="text-sm font-medium text-gray-700 mb-2">NFT Metadata Preview</h4>
-                    <pre class="text-xs bg-white p-3 rounded border overflow-auto max-h-48"></pre>
-                </div>
-
-                <!-- Auction Settings -->
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-semibold text-gray-700">Auction Settings</h3>
-                        <button type="button" onclick="useRecommendedSettings()"
-                            class="text-sm text-blue-600 hover:text-blue-700 flex items-center">
-                            <i class="fas fa-magic mr-1"></i>
-                            Use Recommended Settings
-                        </button>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">
-                                Minimum Bid (ETH)
-                                <span class="ml-1 text-gray-400" title="The minimum amount someone must bid">
-                                    <i class="fas fa-info-circle"></i>
-                                </span>
-                            </label>
-                            <input type="number" name="minBid" step="0.01" min="0" placeholder="0.1" required
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <p class="mt-1 text-sm text-gray-500">Recommended: 0.1 ETH</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">
-                                Reserve Price (ETH)
-                                <span class="ml-1 text-gray-400" title="Optional: Auction won't complete unless this price is met">
-                                    <i class="fas fa-info-circle"></i>
-                                </span>
-                            </label>
-                            <input type="number" name="reservePrice" step="0.01" min="0" placeholder="Same as min bid"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <p class="mt-1 text-sm text-gray-500">Optional, defaults to minimum bid</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">
-                                Duration (minutes)
-                                <span class="ml-1 text-gray-400" title="How long the auction will run (max 30 days)">
-                                    <i class="fas fa-info-circle"></i>
-                                </span>
-                            </label>
-                            <input type="number" name="duration" min="1" max="43200" value="15" required
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <p class="mt-1 text-sm text-gray-500">Recommended: 15 minutes (max 30 days / 43200 minutes)</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">
-                                Extension Time (minutes)
-                                <span class="ml-1 text-gray-400" title="Extends auction if bid placed near end">
-                                    <i class="fas fa-info-circle"></i>
-                                </span>
-                            </label>
-                            <input type="number" name="extensionTime" min="1" value="5" required
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <p class="mt-1 text-sm text-gray-500">Recommended: 5 minutes</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">
-                                Bid Increment (%)
-                                <span class="ml-1 text-gray-400" title="Minimum percentage increase required for new bids">
-                                    <i class="fas fa-info-circle"></i>
-                                </span>
-                            </label>
-                            <input type="number" name="bidIncrementPercentage" min="0.01" max="100" step="0.01" value="5" required
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <p class="mt-1 text-sm text-gray-500">Recommended: 5% (converts to 500 basis points)</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">
-                                Royalty (%)
-                                <span class="ml-1 text-gray-400" title="Your royalty on secondary sales (max 10%)">
-                                    <i class="fas fa-info-circle"></i>
-                                </span>
-                            </label>
-                            <input type="number" name="royaltyPercentage" min="0" max="10" value="5" required
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <p class="mt-1 text-sm text-gray-500">Recommended: 5% (max 10%)</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex justify-end space-x-4">
-                    <button type="button" onclick="hideCreateAuctionModal()"
-                        class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
-                        Cancel
-                    </button>
-                    <button type="submit"
-                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
-                        <i class="fas fa-gavel mr-2"></i>
-                        Create Auction
-                    </button>
-                </div>
-            </form>
+    <div
+      id="createAuctionModal"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center"
+    >
+      <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+          <div>
+            <h2 class="text-2xl font-bold text-gray-800">Create New Auction</h2>
+            <p class="text-sm text-gray-600 mt-1">
+              All fields have sensible defaults - just adjust what you need!
+            </p>
+          </div>
+          <button onclick="hideCreateAuctionModal()" class="text-gray-500 hover:text-gray-700">
+            <i class="fas fa-times text-xl"></i>
+          </button>
         </div>
+
+        <form id="auctionForm" class="space-y-6">
+          <!-- Basic Details -->
+          <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-gray-700">NFT Details</h3>
+            <div class="grid grid-cols-1 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Title</label>
+                <input
+                  type="text"
+                  name="title"
+                  placeholder="My Awesome NFT"
+                  required
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+                <p class="mt-1 text-sm text-gray-500">A catchy title for your NFT auction</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Image URL</label>
+                <div
+                  id="upload-zone"
+                  class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md relative"
+                  ondrop="handleDrop(event)"
+                  ondragover="handleDragOver(event)"
+                  ondragleave="handleDragLeave(event)"
+                >
+                  <div class="space-y-1 text-center">
+                    <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-3"></i>
+                    <div class="flex text-sm text-gray-600">
+                      <label
+                        class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500"
+                      >
+                        <span>Upload a file</span>
+                        <input
+                          type="file"
+                          class="sr-only"
+                          id="nft-image"
+                          accept="image/jpeg,image/png,image/gif"
+                          onchange="validateAndUploadFile(event)"
+                        />
+                      </label>
+                      <p class="pl-1">or drag and drop</p>
+                    </div>
+                    <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                  </div>
+                  <!-- Upload Progress -->
+                  <div
+                    id="upload-progress"
+                    class="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center hidden"
+                  >
+                    <div class="text-center">
+                      <div class="w-48 h-2 bg-gray-200 rounded-full mb-2">
+                        <div
+                          id="progress-bar"
+                          class="h-full bg-blue-600 rounded-full"
+                          style="width: 0%"
+                        ></div>
+                      </div>
+                      <p id="progress-text" class="text-sm text-gray-600">Uploading... 0%</p>
+                    </div>
+                  </div>
+                </div>
+                <input type="hidden" name="imageURI" id="imageURI-input" />
+                <div id="image-preview" class="mt-3 hidden">
+                  <img src="" alt="NFT Preview" class="max-h-48 rounded-lg mx-auto" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Description</label>
+                <textarea
+                  name="description"
+                  rows="2"
+                  placeholder="Describe your NFT..."
+                  required
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                ></textarea>
+                <p class="mt-1 text-sm text-gray-500">Tell potential buyers about your NFT</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Metadata Preview -->
+          <div id="metadata-preview" class="hidden mt-4 p-4 bg-gray-50 rounded-lg">
+            <h4 class="text-sm font-medium text-gray-700 mb-2">NFT Metadata Preview</h4>
+            <pre class="text-xs bg-white p-3 rounded border overflow-auto max-h-48"></pre>
+          </div>
+
+          <!-- Auction Settings -->
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-semibold text-gray-700">Auction Settings</h3>
+              <button
+                type="button"
+                onclick="useRecommendedSettings()"
+                class="text-sm text-blue-600 hover:text-blue-700 flex items-center"
+              >
+                <i class="fas fa-magic mr-1"></i>
+                Use Recommended Settings
+              </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700">
+                  Minimum Bid (ETH)
+                  <span class="ml-1 text-gray-400" title="The minimum amount someone must bid">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  name="minBid"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.1"
+                  required
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+                <p class="mt-1 text-sm text-gray-500">Recommended: 0.1 ETH</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">
+                  Reserve Price (ETH)
+                  <span
+                    class="ml-1 text-gray-400"
+                    title="Optional: Auction won't complete unless this price is met"
+                  >
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  name="reservePrice"
+                  step="0.01"
+                  min="0"
+                  placeholder="Same as min bid"
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+                <p class="mt-1 text-sm text-gray-500">Optional, defaults to minimum bid</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">
+                  Duration (minutes)
+                  <span
+                    class="ml-1 text-gray-400"
+                    title="How long the auction will run (max 30 days)"
+                  >
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  name="duration"
+                  min="1"
+                  max="43200"
+                  value="15"
+                  required
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+                <p class="mt-1 text-sm text-gray-500">
+                  Recommended: 15 minutes (max 30 days / 43200 minutes)
+                </p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">
+                  Extension Time (minutes)
+                  <span class="ml-1 text-gray-400" title="Extends auction if bid placed near end">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  name="extensionTime"
+                  min="1"
+                  value="5"
+                  required
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+                <p class="mt-1 text-sm text-gray-500">Recommended: 5 minutes</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">
+                  Bid Increment (%)
+                  <span
+                    class="ml-1 text-gray-400"
+                    title="Minimum percentage increase required for new bids"
+                  >
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  name="bidIncrementPercentage"
+                  min="0.01"
+                  max="100"
+                  step="0.01"
+                  value="5"
+                  required
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+                <p class="mt-1 text-sm text-gray-500">
+                  Recommended: 5% (converts to 500 basis points)
+                </p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">
+                  Royalty (%)
+                  <span
+                    class="ml-1 text-gray-400"
+                    title="Your royalty on secondary sales (max 10%)"
+                  >
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  name="royaltyPercentage"
+                  min="0"
+                  max="10"
+                  value="5"
+                  required
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+                <p class="mt-1 text-sm text-gray-500">Recommended: 5% (max 10%)</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end space-x-4">
+            <button
+              type="button"
+              onclick="hideCreateAuctionModal()"
+              class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+            >
+              <i class="fas fa-gavel mr-2"></i>
+              Create Auction
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- Capabilities Modal -->
-    <div id="capabilitiesModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
-        <div class="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-800">Biddy's Capabilities</h2>
-                    <p class="text-sm text-gray-600 mt-1">Your AI-powered NFT auction assistant</p>
-                </div>
-                <button onclick="hideCapabilitiesModal()" class="text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Auction Creation -->
-                <div class="bg-blue-50 p-6 rounded-lg">
-                    <div class="flex items-center mb-4">
-                        <div class="bg-blue-100 p-3 rounded-full">
-                            <i class="fas fa-gavel text-blue-600 text-xl"></i>
-                        </div>
-                        <h3 class="text-lg font-semibold text-blue-800 ml-4">Create & Earn</h3>
-                    </div>
-                    <ul class="space-y-3">
-                        <li class="flex items-start">
-                            <i class="fas fa-check-circle text-blue-600 mt-1 mr-2"></i>
-                            <span>Create NFT auctions with customizable parameters</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check-circle text-blue-600 mt-1 mr-2"></i>
-                            <span>Set minimum bids, duration, and reserve prices</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check-circle text-blue-600 mt-1 mr-2"></i>
-                            <span>Earn up to 10% in royalties on sales</span>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Bidding & Withdrawals -->
-                <div class="bg-green-50 p-6 rounded-lg">
-                    <div class="flex items-center mb-4">
-                        <div class="bg-green-100 p-3 rounded-full">
-                            <i class="fas fa-coins text-green-600 text-xl"></i>
-                        </div>
-                        <h3 class="text-lg font-semibold text-green-800 ml-4">Bid & Withdraw</h3>
-                    </div>
-                    <ul class="space-y-3">
-                        <li class="flex items-start">
-                            <i class="fas fa-check-circle text-green-600 mt-1 mr-2"></i>
-                            <span>Place bids on active auctions</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check-circle text-green-600 mt-1 mr-2"></i>
-                            <span>Automatic refunds when outbid</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check-circle text-green-600 mt-1 mr-2"></i>
-                            <span>One-click withdrawals of available funds</span>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Tracking & Analytics -->
-                <div class="bg-purple-50 p-6 rounded-lg">
-                    <div class="flex items-center mb-4">
-                        <div class="bg-purple-100 p-3 rounded-full">
-                            <i class="fas fa-chart-line text-purple-600 text-xl"></i>
-                        </div>
-                        <h3 class="text-lg font-semibold text-purple-800 ml-4">Track & Monitor</h3>
-                    </div>
-                    <ul class="space-y-3">
-                        <li class="flex items-start">
-                            <i class="fas fa-check-circle text-purple-600 mt-1 mr-2"></i>
-                            <span>View all active auctions and bids</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check-circle text-purple-600 mt-1 mr-2"></i>
-                            <span>Monitor your auction earnings</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check-circle text-purple-600 mt-1 mr-2"></i>
-                            <span>Track royalty payments</span>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Smart Features -->
-                <div class="bg-orange-50 p-6 rounded-lg">
-                    <div class="flex items-center mb-4">
-                        <div class="bg-orange-100 p-3 rounded-full">
-                            <i class="fas fa-brain text-orange-600 text-xl"></i>
-                        </div>
-                        <h3 class="text-lg font-semibold text-orange-800 ml-4">Smart Features</h3>
-                    </div>
-                    <ul class="space-y-3">
-                        <li class="flex items-start">
-                            <i class="fas fa-check-circle text-orange-600 mt-1 mr-2"></i>
-                            <span>AI-powered auction recommendations</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check-circle text-orange-600 mt-1 mr-2"></i>
-                            <span>Automatic auction extensions</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check-circle text-orange-600 mt-1 mr-2"></i>
-                            <span>Smart reserve price suggestions</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Example Commands -->
-            <div class="mt-6 bg-gray-50 p-6 rounded-lg">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Try These Commands</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-white p-4 rounded-lg border border-gray-200">
-                        <p class="font-medium text-gray-700">💰 Check Earnings</p>
-                        <p class="text-gray-600 text-sm mt-1">"Show my withdrawable amount"</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg border border-gray-200">
-                        <p class="font-medium text-gray-700">🎨 Create Auction</p>
-                        <p class="text-gray-600 text-sm mt-1">"Create an auction with 0.1 ETH minimum bid"</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg border border-gray-200">
-                        <p class="font-medium text-gray-700">🔍 View Auctions</p>
-                        <p class="text-gray-600 text-sm mt-1">"Show active auctions"</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg border border-gray-200">
-                        <p class="font-medium text-gray-700">💸 Withdraw</p>
-                        <p class="text-gray-600 text-sm mt-1">"Withdraw my available funds"</p>
-                    </div>
-                </div>
-            </div>
+    <div
+      id="capabilitiesModal"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center"
+    >
+      <div class="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+          <div>
+            <h2 class="text-2xl font-bold text-gray-800">Biddy's Capabilities</h2>
+            <p class="text-sm text-gray-600 mt-1">Your AI-powered NFT auction assistant</p>
+          </div>
+          <button onclick="hideCapabilitiesModal()" class="text-gray-500 hover:text-gray-700">
+            <i class="fas fa-times text-xl"></i>
+          </button>
         </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Auction Creation -->
+          <div class="bg-blue-50 p-6 rounded-lg">
+            <div class="flex items-center mb-4">
+              <div class="bg-blue-100 p-3 rounded-full">
+                <i class="fas fa-gavel text-blue-600 text-xl"></i>
+              </div>
+              <h3 class="text-lg font-semibold text-blue-800 ml-4">Create & Earn</h3>
+            </div>
+            <ul class="space-y-3">
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-blue-600 mt-1 mr-2"></i>
+                <span>Create NFT auctions with customizable parameters</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-blue-600 mt-1 mr-2"></i>
+                <span>Set minimum bids, duration, and reserve prices</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-blue-600 mt-1 mr-2"></i>
+                <span>Earn up to 10% in royalties on sales</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Bidding & Withdrawals -->
+          <div class="bg-green-50 p-6 rounded-lg">
+            <div class="flex items-center mb-4">
+              <div class="bg-green-100 p-3 rounded-full">
+                <i class="fas fa-coins text-green-600 text-xl"></i>
+              </div>
+              <h3 class="text-lg font-semibold text-green-800 ml-4">Bid & Withdraw</h3>
+            </div>
+            <ul class="space-y-3">
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-green-600 mt-1 mr-2"></i>
+                <span>Place bids on active auctions</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-green-600 mt-1 mr-2"></i>
+                <span>Automatic refunds when outbid</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-green-600 mt-1 mr-2"></i>
+                <span>One-click withdrawals of available funds</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Tracking & Analytics -->
+          <div class="bg-purple-50 p-6 rounded-lg">
+            <div class="flex items-center mb-4">
+              <div class="bg-purple-100 p-3 rounded-full">
+                <i class="fas fa-chart-line text-purple-600 text-xl"></i>
+              </div>
+              <h3 class="text-lg font-semibold text-purple-800 ml-4">Track & Monitor</h3>
+            </div>
+            <ul class="space-y-3">
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-purple-600 mt-1 mr-2"></i>
+                <span>View all active auctions and bids</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-purple-600 mt-1 mr-2"></i>
+                <span>Monitor your auction earnings</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-purple-600 mt-1 mr-2"></i>
+                <span>Track royalty payments</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Smart Features -->
+          <div class="bg-orange-50 p-6 rounded-lg">
+            <div class="flex items-center mb-4">
+              <div class="bg-orange-100 p-3 rounded-full">
+                <i class="fas fa-brain text-orange-600 text-xl"></i>
+              </div>
+              <h3 class="text-lg font-semibold text-orange-800 ml-4">Smart Features</h3>
+            </div>
+            <ul class="space-y-3">
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-orange-600 mt-1 mr-2"></i>
+                <span>AI-powered auction recommendations</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-orange-600 mt-1 mr-2"></i>
+                <span>Automatic auction extensions</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-orange-600 mt-1 mr-2"></i>
+                <span>Smart reserve price suggestions</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Example Commands -->
+        <div class="mt-6 bg-gray-50 p-6 rounded-lg">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">Try These Commands</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-white p-4 rounded-lg border border-gray-200">
+              <p class="font-medium text-gray-700">💰 Check Earnings</p>
+              <p class="text-gray-600 text-sm mt-1">"Show my withdrawable amount"</p>
+            </div>
+            <div class="bg-white p-4 rounded-lg border border-gray-200">
+              <p class="font-medium text-gray-700">🎨 Create Auction</p>
+              <p class="text-gray-600 text-sm mt-1">"Create an auction with 0.1 ETH minimum bid"</p>
+            </div>
+            <div class="bg-white p-4 rounded-lg border border-gray-200">
+              <p class="font-medium text-gray-700">🔍 View Auctions</p>
+              <p class="text-gray-600 text-sm mt-1">"Show active auctions"</p>
+            </div>
+            <div class="bg-white p-4 rounded-lg border border-gray-200">
+              <p class="font-medium text-gray-700">💸 Withdraw</p>
+              <p class="text-gray-600 text-sm mt-1">"Withdraw my available funds"</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Add Pinata integration -->
     <script>
-        const socket = io();
-        const chatMessages = document.getElementById('chat-messages');
-        const chatForm = document.getElementById('chat-form');
-        const messageInput = document.getElementById('message-input');
+      // Generate a unique session ID
+      const sessionId = Math.random().toString(36).substring(2, 15);
+      let isProcessing = false;
 
-        function appendMessage(content, isUser = false) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'flex flex-col space-y-1';
-            
-            const messageContent = document.createElement('div');
-            messageContent.className = 'flex items-start ' + (isUser ? 'justify-end' : '');
-            
-            const bubble = document.createElement('div');
-            bubble.className = isUser 
-                ? 'bg-blue-600 text-white rounded-lg px-4 py-2 max-w-[80%]'
-                : 'bg-blue-100 rounded-lg px-4 py-2 max-w-[80%]';
-            
-            // Format the content to handle markdown-style bullet points
-            const formattedContent = content.replace(/•\s/g, '• ');
-            
-            bubble.innerHTML = `<p class="${isUser ? 'text-white' : 'text-gray-800'}">${formattedContent}</p>`;
-            
-            messageContent.appendChild(bubble);
-            messageDiv.appendChild(messageContent);
-            chatMessages.appendChild(messageDiv);
-            
-            // Scroll to bottom
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+      const chatMessages = document.getElementById("chat-messages");
+      const chatForm = document.getElementById("chat-form");
+      const messageInput = document.getElementById("message-input");
+
+      function appendMessage(content, isUser = false) {
+        const messageDiv = document.createElement("div");
+        messageDiv.className = "flex flex-col space-y-1";
+
+        const messageContent = document.createElement("div");
+        messageContent.className = "flex items-start " + (isUser ? "justify-end" : "");
+
+        const bubble = document.createElement("div");
+        bubble.className = isUser
+          ? "bg-blue-600 text-white rounded-lg px-4 py-2 max-w-[80%]"
+          : "bg-blue-100 rounded-lg px-4 py-2 max-w-[80%]";
+
+        const formattedContent = content.replace(/•\s/g, "• ");
+        bubble.innerHTML = `<p class="${
+          isUser ? "text-white" : "text-gray-800"
+        }">${formattedContent}</p>`;
+
+        messageContent.appendChild(bubble);
+        messageDiv.appendChild(messageContent);
+        chatMessages.appendChild(messageDiv);
+
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      // Chat form submission
+      chatForm.addEventListener("submit", async e => {
+        e.preventDefault();
+        const message = messageInput.value.trim();
+        if (!message || isProcessing) return;
+
+        try {
+          isProcessing = true;
+          appendMessage(message, true);
+          messageInput.value = "";
+
+          const apiUrl =
+            window.location.hostname === "localhost"
+              ? "http://localhost:3000/api/chat"
+              : "/api/chat";
+
+          const response = await fetch(apiUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({
+              message,
+              sessionId,
+              timestamp: Date.now(),
+            }),
+          });
+
+          if (!response.ok) {
+            if (response.status === 404) {
+              throw new Error("API endpoint not found. Please check server configuration.");
+            }
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Server error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          if (!data || !data.response) {
+            throw new Error("Invalid response from server");
+          }
+          appendMessage(data.response);
+        } catch (error) {
+          console.error("Error:", error);
+          appendMessage(`❌ Error: ${error.message}. Please try again.`);
+        } finally {
+          isProcessing = false;
         }
+      });
 
-        chatForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const message = messageInput.value.trim();
-            if (!message) return;
+      // Modal functions
+      function showCreateAuctionModal() {
+        document.getElementById("createAuctionModal").classList.remove("hidden");
+      }
 
-            // Append user message
-            appendMessage(message, true);
-            
-            // Send message to server
-            socket.emit('message', message);
-            
-            // Clear input
-            messageInput.value = '';
-        });
+      function hideCreateAuctionModal() {
+        document.getElementById("createAuctionModal").classList.add("hidden");
+      }
 
-        socket.on('response', (response) => {
-            appendMessage(response);
-        });
+      // Handle form submission
+      document.getElementById("auctionForm").addEventListener("submit", async e => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
 
-        socket.on('error', (error) => {
-            appendMessage('😅 Oops! ' + error);
-        });
+        try {
+          // Create NFT metadata
+          const metadata = {
+            name: formData.get("title"),
+            description: formData.get("description"),
+            image: formData.get("imageURI"),
+            attributes: [
+              {
+                trait_type: "Minimum Bid",
+                value: `${formData.get("minBid")} ETH`,
+              },
+              {
+                trait_type: "Royalty",
+                value: `${formData.get("royaltyPercentage")}%`,
+              },
+              {
+                trait_type: "Duration",
+                value: `${formData.get("duration")} minutes`,
+              },
+              {
+                trait_type: "Bid Increment",
+                value: `${formData.get("bidIncrementPercentage")}%`,
+              },
+            ],
+          };
 
-        // Handle connection status
-        socket.on('connect', () => {
-            console.log('Connected to server');
-        });
+          // Upload metadata to IPFS through our backend
+          const response = await fetch("/api/upload/metadata", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(metadata),
+          });
 
-        socket.on('disconnect', () => {
-            console.log('Disconnected from server');
-            appendMessage('🔌 Lost connection to server. Please refresh the page to reconnect with Biddy.');
-        });
+          const data = await response.json();
+          if (!data.success) {
+            throw new Error(data.error || "Metadata upload failed");
+          }
 
-        // Modal functions
-        function showCreateAuctionModal() {
-            document.getElementById('createAuctionModal').classList.remove('hidden');
-        }
+          // Convert form data to the format expected by the agent
+          const auctionData = {
+            minBid: formData.get("minBid"),
+            duration: Number(formData.get("duration")) * 60, // Convert to seconds
+            extensionTime: Number(formData.get("extensionTime")) * 60, // Convert to seconds
+            bidIncrementPercentage: Math.floor(
+              Number(formData.get("bidIncrementPercentage")) * 100,
+            ), // Convert to basis points
+            title: formData.get("title"),
+            description: formData.get("description"),
+            imageURI: formData.get("imageURI"),
+            metadataURI: data.ipfsUrl,
+            royaltyPercentage: Math.floor(Number(formData.get("royaltyPercentage")) * 100), // Convert to basis points
+            reservePrice: formData.get("reservePrice") || formData.get("minBid"), // Default to minBid if not set
+          };
 
-        function hideCreateAuctionModal() {
-            document.getElementById('createAuctionModal').classList.add('hidden');
-        }
+          // Add platform fee note
+          const platformFee = Number(auctionData.minBid) * 0.025; // 2.5% platform fee
 
-        // Handle form submission
-        document.getElementById('auctionForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            
-            try {
-                // Create NFT metadata
-                const metadata = {
-                    name: formData.get('title'),
-                    description: formData.get('description'),
-                    image: formData.get('imageURI'),
-                    attributes: [
-                        {
-                            trait_type: "Minimum Bid",
-                            value: `${formData.get('minBid')} ETH`
-                        },
-                        {
-                            trait_type: "Royalty",
-                            value: `${formData.get('royaltyPercentage')}%`
-                        },
-                        {
-                            trait_type: "Duration",
-                            value: `${formData.get('duration')} minutes`
-                        },
-                        {
-                            trait_type: "Bid Increment",
-                            value: `${formData.get('bidIncrementPercentage')}%`
-                        }
-                    ]
-                };
-
-                // Upload metadata to IPFS through our backend
-                const response = await fetch('/api/upload/metadata', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(metadata)
-                });
-
-                const data = await response.json();
-                if (!data.success) {
-                    throw new Error(data.error || 'Metadata upload failed');
-                }
-
-                // Convert form data to the format expected by the agent
-                const auctionData = {
-                    minBid: formData.get('minBid'),
-                    duration: Number(formData.get('duration')) * 60, // Convert to seconds
-                    extensionTime: Number(formData.get('extensionTime')) * 60, // Convert to seconds
-                    bidIncrementPercentage: Math.floor(Number(formData.get('bidIncrementPercentage')) * 100), // Convert to basis points
-                    title: formData.get('title'),
-                    description: formData.get('description'),
-                    imageURI: formData.get('imageURI'),
-                    metadataURI: data.ipfsUrl,
-                    royaltyPercentage: Math.floor(Number(formData.get('royaltyPercentage')) * 100), // Convert to basis points
-                    reservePrice: formData.get('reservePrice') || formData.get('minBid'), // Default to minBid if not set
-                };
-
-                // Add platform fee note
-                const platformFee = Number(auctionData.minBid) * 0.025; // 2.5% platform fee
-
-                // Send the command to create an auction
-                const command = `Create an auction with the following details:
+          // Send the command to create an auction
+          const command = `Create an auction with the following details:
 - Minimum bid: ${auctionData.minBid} ETH
-- Duration: ${formData.get('duration')} minutes
-- Extension time: ${formData.get('extensionTime')} minutes
-- Bid increment: ${formData.get('bidIncrementPercentage')}% (${auctionData.bidIncrementPercentage} basis points)
+- Duration: ${formData.get("duration")} minutes
+- Extension time: ${formData.get("extensionTime")} minutes
+- Bid increment: ${formData.get("bidIncrementPercentage")}% (${
+            auctionData.bidIncrementPercentage
+          } basis points)
 - Title: ${auctionData.title}
 - Description: ${auctionData.description}
 - Image: ${auctionData.imageURI}
 - Metadata: ${auctionData.metadataURI}
-- Royalty: ${formData.get('royaltyPercentage')}% (${auctionData.royaltyPercentage} basis points)
+- Royalty: ${formData.get("royaltyPercentage")}% (${auctionData.royaltyPercentage} basis points)
 - Reserve price: ${auctionData.reservePrice} ETH
 Note: A 2.5% platform fee (${platformFee} ETH) will be applied to the final sale.`;
 
-                // Append user message
-                appendMessage(command, true);
-                
-                // Send message to server
-                socket.emit('message', command);
-                
-                // Hide modal and reset form
-                hideCreateAuctionModal();
-                e.target.reset();
+          // Send message using fetch API
+          const chatResponse = await fetch("/api/chat", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ message: command, sessionId }),
+          });
 
-            } catch (error) {
-                alert('Error creating auction. Please try again.');
-                console.error(error);
-            }
-        });
+          if (!chatResponse.ok) {
+            throw new Error(`HTTP error! status: ${chatResponse.status}`);
+          }
 
-        // Helper functions for the form
-        function useDefaultImage() {
-            const titleInput = document.querySelector('input[name="title"]');
-            const title = titleInput.value || 'My+NFT';
-            const imageInput = document.querySelector('input[name="imageURI"]');
-            imageInput.value = `https://placehold.co/600x400?text=${title.replace(/\s+/g, '+')}`;
+          const chatData = await chatResponse.json();
+          appendMessage(command, true);
+          appendMessage(chatData.response);
+
+          // Hide modal and reset form
+          hideCreateAuctionModal();
+          e.target.reset();
+        } catch (error) {
+          alert("Error creating auction. Please try again.");
+          console.error(error);
+        }
+      });
+
+      // Helper functions for the form
+      function useDefaultImage() {
+        const titleInput = document.querySelector('input[name="title"]');
+        const title = titleInput.value || "My+NFT";
+        const imageInput = document.querySelector('input[name="imageURI"]');
+        imageInput.value = `https://placehold.co/600x400?text=${title.replace(/\s+/g, "+")}`;
+      }
+
+      function useRecommendedSettings() {
+        const form = document.getElementById("auctionForm");
+        form.querySelector('input[name="minBid"]').value = "0.1";
+        form.querySelector('input[name="duration"]').value = "15";
+        form.querySelector('input[name="extensionTime"]').value = "5";
+        form.querySelector('input[name="bidIncrementPercentage"]').value = "5";
+        form.querySelector('input[name="royaltyPercentage"]').value = "5";
+      }
+
+      // Capabilities Modal functions
+      function showCapabilitiesModal() {
+        document.getElementById("capabilitiesModal").classList.remove("hidden");
+      }
+
+      function hideCapabilitiesModal() {
+        document.getElementById("capabilitiesModal").classList.add("hidden");
+      }
+
+      // File validation and upload
+      function validateFile(file) {
+        const validTypes = ["image/jpeg", "image/png", "image/gif"];
+        const maxSize = 10 * 1024 * 1024; // 10MB
+
+        if (!validTypes.includes(file.type)) {
+          throw new Error("Invalid file type. Please upload a JPG, PNG, or GIF image.");
         }
 
-        function useRecommendedSettings() {
-            const form = document.getElementById('auctionForm');
-            form.querySelector('input[name="minBid"]').value = '0.1';
-            form.querySelector('input[name="duration"]').value = '15';
-            form.querySelector('input[name="extensionTime"]').value = '5';
-            form.querySelector('input[name="bidIncrementPercentage"]').value = '5';
-            form.querySelector('input[name="royaltyPercentage"]').value = '5';
+        if (file.size > maxSize) {
+          throw new Error("File too large. Maximum size is 10MB.");
         }
 
-        // Capabilities Modal functions
-        function showCapabilitiesModal() {
-            document.getElementById('capabilitiesModal').classList.remove('hidden');
+        return true;
+      }
+
+      // Drag and drop handlers
+      function handleDragOver(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        document.getElementById("upload-zone").classList.add("border-blue-500", "bg-blue-50");
+      }
+
+      function handleDragLeave(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        document.getElementById("upload-zone").classList.remove("border-blue-500", "bg-blue-50");
+      }
+
+      function handleDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const uploadZone = document.getElementById("upload-zone");
+        uploadZone.classList.remove("border-blue-500", "bg-blue-50");
+
+        const file = e.dataTransfer.files[0];
+        if (file) {
+          validateAndUploadFile({ target: { files: [file] } });
         }
+      }
 
-        function hideCapabilitiesModal() {
-            document.getElementById('capabilitiesModal').classList.add('hidden');
-        }
+      // File validation and upload
+      async function validateAndUploadFile(e) {
+        const file = e.target.files[0];
+        if (!file) return;
 
-        // File validation and upload
-        function validateFile(file) {
-            const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
-            const maxSize = 10 * 1024 * 1024; // 10MB
-
-            if (!validTypes.includes(file.type)) {
-                throw new Error('Invalid file type. Please upload a JPG, PNG, or GIF image.');
-            }
-
-            if (file.size > maxSize) {
-                throw new Error('File too large. Maximum size is 10MB.');
-            }
-
-            return true;
-        }
-
-        // Drag and drop handlers
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            document.getElementById('upload-zone').classList.add('border-blue-500', 'bg-blue-50');
-        }
-
-        function handleDragLeave(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            document.getElementById('upload-zone').classList.remove('border-blue-500', 'bg-blue-50');
-        }
-
-        function handleDrop(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const uploadZone = document.getElementById('upload-zone');
-            uploadZone.classList.remove('border-blue-500', 'bg-blue-50');
-
-            const file = e.dataTransfer.files[0];
-            if (file) {
-                validateAndUploadFile({ target: { files: [file] } });
-            }
-        }
-
-        // File validation and upload
-        async function validateAndUploadFile(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            try {
-                validateFile(file);
-                await uploadFile(file);
-            } catch (error) {
-                const preview = document.getElementById('image-preview');
-                preview.innerHTML = `
+        try {
+          validateFile(file);
+          await uploadFile(file);
+        } catch (error) {
+          const preview = document.getElementById("image-preview");
+          preview.innerHTML = `
                     <div class="text-center text-red-600">
                         <i class="fas fa-exclamation-circle"></i>
                         ${error.message}
                     </div>
                 `;
-                preview.classList.remove('hidden');
-            }
+          preview.classList.remove("hidden");
         }
+      }
 
-        // File upload with progress
-        async function uploadFile(file) {
-            const preview = document.getElementById('image-preview');
-            const progress = document.getElementById('upload-progress');
-            const progressBar = document.getElementById('progress-bar');
-            const progressText = document.getElementById('progress-text');
+      // File upload with progress
+      async function uploadFile(file) {
+        const preview = document.getElementById("image-preview");
+        const progress = document.getElementById("upload-progress");
+        const progressBar = document.getElementById("progress-bar");
+        const progressText = document.getElementById("progress-text");
 
-            preview.classList.add('hidden');
-            progress.classList.remove('hidden');
+        preview.classList.add("hidden");
+        progress.classList.remove("hidden");
 
-            try {
-                const formData = new FormData();
-                formData.append('file', file);
+        try {
+          const formData = new FormData();
+          formData.append("file", file);
 
-                const response = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData
-                });
+          const apiUrl =
+            window.location.hostname === "localhost"
+              ? "http://localhost:3000/api/upload"
+              : "/api/upload";
 
-                const data = await response.json();
-                if (!data.success) {
-                    throw new Error(data.error || 'Upload failed');
-                }
+          const response = await fetch(apiUrl, {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+            },
+            body: formData,
+          });
 
-                // Update form and preview
-                document.getElementById('imageURI-input').value = data.ipfsUrl;
-                preview.innerHTML = `
-                    <img src="${data.gatewayUrl}" 
-                         alt="NFT Preview" 
-                         class="max-h-48 rounded-lg mx-auto">
-                    <p class="text-sm text-gray-600 mt-2">✅ Uploaded to IPFS: ${data.ipfsUrl}</p>
-                `;
-                preview.classList.remove('hidden');
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Upload failed: ${response.status}`);
+          }
 
-                // Update metadata preview
-                updateMetadataPreview();
+          const data = await response.json();
+          if (!data.success) {
+            throw new Error(data.error || "Upload failed");
+          }
 
-            } catch (error) {
-                preview.innerHTML = `
-                    <div class="text-center text-red-600">
-                        <i class="fas fa-exclamation-circle"></i>
-                        ${error.message || 'Error uploading image. Please try again.'}
-                    </div>
-                `;
-                preview.classList.remove('hidden');
-            } finally {
-                progress.classList.add('hidden');
-                progressBar.style.width = '0%';
-                progressText.textContent = 'Uploading... 0%';
-            }
+          // Update form and preview
+          document.getElementById("imageURI-input").value = data.ipfsUrl;
+          preview.innerHTML = `
+            <img src="${data.gatewayUrl}" 
+                 alt="NFT Preview" 
+                 class="max-h-48 rounded-lg mx-auto">
+            <p class="text-sm text-gray-600 mt-2">✅ Uploaded to IPFS: ${data.ipfsUrl}</p>
+          `;
+          preview.classList.remove("hidden");
+
+          // Update metadata preview
+          updateMetadataPreview();
+        } catch (error) {
+          preview.innerHTML = `
+            <div class="text-center text-red-600">
+              <i class="fas fa-exclamation-circle"></i>
+              ${error.message || "Error uploading image. Please try again."}
+            </div>
+          `;
+          preview.classList.remove("hidden");
+        } finally {
+          progress.classList.add("hidden");
+          progressBar.style.width = "0%";
+          progressText.textContent = "Uploading... 0%";
         }
+      }
 
-        // Update metadata preview
-        function updateMetadataPreview() {
-            const form = document.getElementById('auctionForm');
-            const formData = new FormData(form);
-            
-            const metadata = {
-                name: formData.get('title'),
-                description: formData.get('description'),
-                image: formData.get('imageURI'),
-                attributes: [
-                    {
-                        trait_type: "Minimum Bid",
-                        value: `${formData.get('minBid')} ETH`
-                    },
-                    {
-                        trait_type: "Royalty",
-                        value: `${formData.get('royaltyPercentage')}%`
-                    },
-                    {
-                        trait_type: "Duration",
-                        value: `${formData.get('duration')} minutes`
-                    },
-                    {
-                        trait_type: "Bid Increment",
-                        value: `${formData.get('bidIncrementPercentage')}%`
-                    }
-                ]
-            };
+      // Update metadata preview
+      function updateMetadataPreview() {
+        const form = document.getElementById("auctionForm");
+        const formData = new FormData(form);
 
-            const preview = document.getElementById('metadata-preview');
-            preview.classList.remove('hidden');
-            preview.querySelector('pre').textContent = JSON.stringify(metadata, null, 2);
-        }
+        const metadata = {
+          name: formData.get("title"),
+          description: formData.get("description"),
+          image: formData.get("imageURI"),
+          attributes: [
+            {
+              trait_type: "Minimum Bid",
+              value: `${formData.get("minBid")} ETH`,
+            },
+            {
+              trait_type: "Royalty",
+              value: `${formData.get("royaltyPercentage")}%`,
+            },
+            {
+              trait_type: "Duration",
+              value: `${formData.get("duration")} minutes`,
+            },
+            {
+              trait_type: "Bid Increment",
+              value: `${formData.get("bidIncrementPercentage")}%`,
+            },
+          ],
+        };
 
-        // Update metadata preview when form values change
-        document.getElementById('auctionForm').addEventListener('change', updateMetadataPreview);
+        const preview = document.getElementById("metadata-preview");
+        preview.classList.remove("hidden");
+        preview.querySelector("pre").textContent = JSON.stringify(metadata, null, 2);
+      }
+
+      // Update metadata preview when form values change
+      document.getElementById("auctionForm").addEventListener("change", updateMetadataPreview);
     </script>
-</body>
-</html> 
+  </body>
+</html>

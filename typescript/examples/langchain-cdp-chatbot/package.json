@@ -7,13 +7,16 @@
   "private": true,
   "main": "netlify/functions/server.js",
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   },
   "scripts": {
     "start": "node dist/server.js",
+    "start:web": "ts-node server.ts",
+    "start:console": "ts-node chatbot.ts",
     "dev": "netlify dev",
     "prebuild": "cd ../../agentkit && npm install && npm run build && cd ../framework-extensions/langchain && npm install && npm run build",
     "build": "tsc --build && mkdir -p dist/netlify && cp -r netlify/functions dist/netlify/ && cp -r public dist/",
+    "build:watch": "tsc --watch",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "format": "prettier --write \"**/*.{ts,js,cjs,json,md}\"",

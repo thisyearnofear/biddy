@@ -26,3 +26,6 @@ yarn-error.log*
 
 # Local Netlify folder
 .netlify
+
+dev_wallet_data.txt
+dev_wallet_private_key.txt
