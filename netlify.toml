@@ -1,11 +1,18 @@
 [build]
   base = "typescript"
-  command = "cd examples/langchain-cdp-chatbot && npm install && npm run build"
+  command = """
+    cd .. && \
+    npm install && \
+    cd examples/langchain-cdp-chatbot && \
+    npm install && \
+    npm run build
+  """
   publish = "examples/langchain-cdp-chatbot/dist"
-  functions = "examples/langchain-cdp-chatbot/dist"
+  functions = "examples/langchain-cdp-chatbot/dist/netlify/functions"
 
 [build.environment]
   NODE_VERSION = "18"
+  NPM_FLAGS = "--legacy-peer-deps"
 
 [[redirects]]
   from = "/socket.io/*"
@@ -26,4 +33,5 @@
 
 [functions]
   external_node_modules = ["express", "socket.io"]
-  included_files = ["examples/langchain-cdp-chatbot/public/**"] 
+  included_files = ["examples/langchain-cdp-chatbot/public/**"]
+  node_bundler = "esbuild" 

@@ -12,15 +12,15 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "netlify dev",
-    "build": "tsc && cp -r public dist/ && cp -r netlify dist/",
+    "build": "tsc && mkdir -p dist/netlify && cp -r netlify/functions dist/netlify/ && cp -r public dist/",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "format": "prettier --write \"**/*.{ts,js,cjs,json,md}\"",
     "format:check": "prettier -c .prettierrc --check \"**/*.{ts,js,cjs,json,md}\""
   },
   "dependencies": {
-    "@coinbase/agentkit": "^0.1.0",
-    "@coinbase/agentkit-langchain": "^0.1.0",
+    "@coinbase/agentkit": "file:../../agentkit",
+    "@coinbase/agentkit-langchain": "file:../../framework-extensions/langchain",
     "@ethersproject/units": "^5.7.0",
     "@langchain/community": "^0.0.26",
     "@langchain/core": "^0.1.17",

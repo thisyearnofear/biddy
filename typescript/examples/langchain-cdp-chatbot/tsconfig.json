@@ -9,14 +9,24 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@coinbase/agentkit": ["../../agentkit/src"],
+      "@coinbase/agentkit-langchain": ["../../framework-extensions/langchain/src"]
+    }
   },
   "include": [
     "*.ts",
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "netlify/functions/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "dist"
+  ],
+  "references": [
+    { "path": "../../agentkit" },
+    { "path": "../../framework-extensions/langchain" }
   ]
 }
