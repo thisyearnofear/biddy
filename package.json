@@ -1,12 +1,9 @@
 {
   "name": "bidtoearn-agentkit",
   "private": true,
-  "workspaces": [
-    "typescript/examples/langchain-cdp-chatbot"
-  ],
   "scripts": {
-    "build": "cd typescript/examples/langchain-cdp-chatbot && npm install && npm run build",
-    "start": "cd typescript/examples/langchain-cdp-chatbot && npm start",
-    "dev": "cd typescript/examples/langchain-cdp-chatbot && npm run dev"
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "ts-node-dev --respawn server.ts"
   }
 }
