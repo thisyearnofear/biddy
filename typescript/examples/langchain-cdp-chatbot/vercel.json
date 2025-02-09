@@ -1,0 +1,20 @@
+{
+    "buildCommand": "cd typescript/examples/langchain-cdp-chatbot && npm install && npm run build",
+    "outputDirectory": "typescript/examples/langchain-cdp-chatbot/dist",
+    "devCommand": "cd typescript/examples/langchain-cdp-chatbot && npm run dev",
+    "installCommand": "cd typescript/examples/langchain-cdp-chatbot && npm install",
+    "framework": "node",
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/server.js"
+        }
+    ],
+    "env": {
+        "OPENAI_API_KEY": "@openai_api_key",
+        "DEV_CDP_API_KEY_NAME": "@dev_cdp_api_key_name",
+        "DEV_CDP_API_KEY_PRIVATE_KEY": "@dev_cdp_api_key_private_key",
+        "NETWORK_ID": "@network_id",
+        "WALLET_TYPE": "@wallet_type"
+    }
+}

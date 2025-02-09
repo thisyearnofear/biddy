@@ -1,14 +1,31 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": [".env"],
-  "tasks": {
+  "pipeline": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
-    },
+      "outputs": [
+        "dist/**"
+      ],
+      "dependsOn": [
+        "^build"
+      ]
+    }
+  },
+  "globalDependencies": [
+    "$OPENAI_API_KEY",
+    "$DEV_CDP_API_KEY_NAME",
+    "$DEV_CDP_API_KEY_PRIVATE_KEY",
+    "$NETWORK_ID",
+    "$WALLET_TYPE"
+  ],
+  "tasks": {
     "test": {
-      "dependsOn": ["build"],
-      "inputs": ["src/**/*.ts", "test/**/*.ts"]
+      "dependsOn": [
+        "build"
+      ],
+      "inputs": [
+        "src/**/*.ts",
+        "test/**/*.ts"
+      ]
     },
     "lint": {
       "outputs": []
@@ -26,14 +43,18 @@
       "cache": false
     },
     "docs": {
-      "outputs": ["docs/**"]
+      "outputs": [
+        "docs/**"
+      ]
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
     "test:types": {
-      "dependsOn": ["build"]
+      "dependsOn": [
+        "build"
+      ]
     }
   }
 }
