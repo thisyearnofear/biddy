@@ -1,8 +1,42 @@
 # example netlify.toml
 [build]
-  command = "cd examples/langchain-cdp-chatbot && npm install && npm run build"
-  functions = "/Users/udingethe/Desktop/papa-code/bidtoearn-agentkit/examples/langchain-cdp-chatbot/dist"
-  publish = ""
+  base = "."
+  command = """
+    cd examples/langchain-cdp-chatbot && npm install && npm run build
+  """
+  publish = "examples/langchain-cdp-chatbot/dist"
+  functions = "examples/langchain-cdp-chatbot/dist/netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_FLAGS = "--legacy-peer-deps --force"
+  CI = "false"
+
+[[redirects]]
+  from = "/socket.io/*"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[functions]
+  external_node_modules = ["express", "socket.io", "@coinbase/agentkit", "@coinbase/agentkit-langchain"]
+  included_files = [
+    "examples/langchain-cdp-chatbot/public/**",
+    "agentkit/dist/**",
+    "framework-extensions/langchain/dist/**"
+  ]
+  node_bundler = "esbuild"
 
   ## Uncomment to use this redirect for Single Page Applications like create-react-app.
   ## Not needed for static site generators.

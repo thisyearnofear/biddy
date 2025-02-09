@@ -1,9 +1,6 @@
 [build]
   base = "typescript"
   command = """
-    npm install && \
-    cd agentkit && npm install && npm run build && cd .. && \
-    cd framework-extensions/langchain && npm install && npm run build && cd ../.. && \
     cd examples/langchain-cdp-chatbot && npm install && npm run build
   """
   publish = "examples/langchain-cdp-chatbot/dist"
